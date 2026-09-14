@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Property Details – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .detail-hero { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; align-items:start; }
+    @media(max-width:900px){ .detail-hero { grid-template-columns:1fr; } }
+    .gallery { border-radius:var(--radius-lg); overflow:hidden; }
+    .gallery-main img { width:100%; height:380px; object-fit:cover; cursor:pointer; }
+    .gallery-thumbs { display:flex; gap:8px; margin-top:8px; overflow-x:auto; }
+    .gallery-thumbs img { width:90px; height:65px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; flex-shrink:0; }
+    .gallery-thumbs img.active { border-color:var(--primary); }
+    .info-sidebar { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; position:sticky; top:80px; }
+    .price-big { font-size:2rem; font-weight:900; color:var(--primary); }
+    .owner-card { background:var(--primary-light); border-radius:var(--radius); padding:1rem; margin-top:1rem; }
+    .owner-avatar { width:44px; height:44px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; }
+    .detail-section { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.2rem; }
+    .detail-section h3 { font-size:1.1rem; font-weight:700; margin-bottom:1rem; color:var(--text); border-bottom:1.5px solid var(--border); padding-bottom:0.6rem; }
+    .spec-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+    @media(max-width:600px){ .spec-grid { grid-template-columns:repeat(2,1fr); } }
+    .spec-item { display:flex; flex-direction:column; gap:2px; }
+    .spec-label { font-size:0.78rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .spec-val { font-size:0.95rem; font-weight:600; color:var(--text); }
+    .score-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .score-bar-wrap { flex:1; background:#e5e7eb; border-radius:4px; height:7px; }
+    .score-bar { height:7px; border-radius:4px; background:var(--primary); }
+    .nearby-list { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .nearby-item { background:var(--primary-light); border-radius:var(--radius); padding:10px 12px; display:flex; align-items:center; gap:10px; }
+    .nearby-icon { font-size:1.3rem; }
+    .modal-overlay { display:none; }
+    .modal-overlay.open { display:flex; }
+    .amenity-tag { background:var(--primary-light); color:var(--primary); padding:5px 12px; border-radius:20px; font-size:0.82rem; font-weight:600; display:inline-block; margin:3px; }
+    .tour-embed { width:100%; height:300px; background:#e5e7eb; border-radius:var(--radius-lg); display:flex; align-items:center; justify-content:center; font-size:3rem; flex-direction:column; gap:10px; color:var(--text-muted); }
+    .report-link { font-size:0.83rem; color:var(--danger); cursor:pointer; text-decoration:underline; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<div class="container" style="padding-top:1.5rem;padding-bottom:3rem" id="detail-content">
+  <div style="padding:4rem;text-align:center;color:var(--text-muted)">Loading property...</div>
+</div>
+
+<!-- SCHEDULE VISIT MODAL -->
+<div class="modal-overlay" id="schedule-modal">
+  <div class="modal">
+    <button type="button" id="btn-close-schedule-modal" class="modal-close" onclick="closeModal()">✕</button>
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem">📅 Schedule Property Visit</h3>
+    <div id="modal-alert"></div>
+    <div class="form-group">
+      <label>Select Date</label>
+      <input type="date" class="form-control" id="visit-date"/>
+    </div>
+    <div class="form-group">
+      <label>Select Time Slot</label>
+      <select class="form-control" id="visit-time">
+        <option value="">Choose a time slot</option>
+        <option>10:00 AM – 11:00 AM</option>
+        <option>11:00 AM – 12:00 PM</option>
+        <option>12:00 PM – 1:00 PM</option>
+        <option>2:00 PM – 3:00 PM</option>
+        <option>3:00 PM – 4:00 PM</option>
+        <option>4:00 PM – 5:00 PM</option>
+        <option>6:00 PM – 7:00 PM</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" class="form-control" id="visit-name" placeholder="Full name"/>
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="tel" class="form-control" id="visit-phone" placeholder="10-digit mobile number"/>
+    </div>
+    <button type="button" id="btn-confirm-booking" class="btn btn-primary w-full" onclick="confirmBooking()">Confirm Booking</button>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal">
+    <button type="button" id="btn-close-contact-modal" class="modal-close" onclick="closeModal('contact-modal')">✕</button>
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem">✉️ Send Inquiry</h3>
+    <div id="contact-alert"></div>
+    <div class="form-group">
+      <label>Your Message</label>
+      <textarea class="form-control" id="contact-msg" rows="4" maxlength="500" required placeholder="Hi, I'm interested in this property. Can you provide more details?"></textarea>
+      <div style="font-size:0.78rem;color:var(--text-muted);text-align:right;margin-top:2px"><span id="msg-count">0</span>/500</div>
+    </div>
+    <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" class="form-control" id="contact-name" placeholder="Full name" required/>
+    </div>
+    <div class="form-group">
+      <label>Your Phone</label>
+      <input type="tel" class="form-control" id="contact-phone" placeholder="Mobile number" required maxlength="10"/>
+    </div>
+    <button type="button" id="btn-send-inquiry" class="btn btn-primary w-full" onclick="sendInquiry()">Send Inquiry</button>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay" id="report-modal">
+  <div class="modal">
+    <button type="button" id="btn-close-report-modal" class="modal-close" onclick="closeModal('report-modal')">✕</button>
+    <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1rem">🚩 Report Listing</h3>
+    <div class="form-group">
+      <label>Reason</label>
+      <select class="form-control" id="report-reason" required>
+        <option value="">-- Select a reason --</option>
+        <option>Suspicious listing</option>
+        <option>Incorrect information</option>
+        <option>Duplicate listing</option>
+        <option>Property no longer available</option>
+        <option>Other</option>
+      </select>
+      <div id="report-alert"></div>
+    </div>
+    <div class="form-group">
+      <label>Additional Details</label>
+      <textarea class="form-control" id="report-detail" rows="3" placeholder="Please describe the issue..."></textarea>
+    </div>
+    <button type="button" id="btn-submit-report" class="btn btn-danger w-full" onclick="submitReport()">Submit Report</button>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const propId = parseInt(params.get('id'));
+  const prop = getPropertyById(propId);
+
+  if (!prop) {
+    document.getElementById('detail-content').innerHTML = `
+      <div style="text-align:center;padding:4rem">
+        <div style="font-size:3rem">🏚️</div>
+        <h2>Property Not Found</h2>
+        <a href="search-results.html" class="btn btn-primary mt-2">Browse Properties</a>
+      </div>`;
+  } else {
+    Auth.addRecentlyViewed(propId);
+    renderDetail(prop);
+  }
+
+  function renderDetail(p) {
+    const user = Auth.getCurrentUser();
+    document.title = `${p.title} – PropFind`;
+    document.getElementById('detail-content').innerHTML = `
+      <div style="margin-bottom:1rem">
+        <a href="search-results.html" style="color:var(--text-muted);font-size:0.88rem">← Back to listings</a>
+      </div>
+
+      <div class="detail-hero">
+        <!-- LEFT: Gallery + Details -->
+        <div>
+          <!-- Gallery -->
+          <div class="gallery detail-section">
+            <div id="main-img-wrap">
+              <img id="main-img" src="${p.images[0]}" alt="${p.title}" style="width:100%;height:380px;object-fit:cover;border-radius:var(--radius-lg)"/>
+            </div>
+            <div class="gallery-thumbs" style="margin-top:8px">
+              ${p.images.map((img,i) => `<img src="${img}" class="${i===0?'active':''}" onclick="setMainImg(this,'${img}')" alt="thumb ${i+1}"/>`).join('')}
+              <div style="width:90px;height:65px;background:var(--primary-light);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer" onclick="openTour()">
+                <span style="font-size:1.5rem">🎬</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Title + Info -->
+          <div class="detail-section">
+            <div class="flex-between flex-wrap gap-2">
+              <div>
+                <h1 style="font-size:1.4rem;font-weight:800;margin-bottom:4px">${p.title}</h1>
+                <p style="color:var(--text-muted)">📍 ${p.location}</p>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                ${p.verified ? '<span class="badge badge-verified">✓ Verified</span>' : ''}
+                <span class="badge badge-primary">${p.purpose}</span>
+                <button onclick="toggleFav(${p.id},this)" style="background:none;border:none;font-size:1.6rem;cursor:pointer" id="fav-btn">${Auth.isFavorite(p.id)?'❤️':'🤍'}</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:1rem;flex-wrap:wrap">
+              <div style="text-align:center"><div style="font-size:1.5rem;font-weight:900;color:var(--primary)">${p.priceLabel}</div><div style="font-size:0.8rem;color:var(--text-muted)">${p.purpose==='Buy'?'Sale Price':'Monthly Rent'}</div></div>
+              <div class="divider" style="border:none;border-left:1px solid var(--border);height:40px"></div>
+              <span class="prop-icon" style="font-size:1rem">🛏 ${p.bhk} BHK</span>
+              <span class="prop-icon" style="font-size:1rem">📐 ${p.area} sq.ft</span>
+              <span class="prop-icon" style="font-size:1rem">🏢 ${p.floor} Floor</span>
+              <span class="prop-icon" style="font-size:1rem">🪑 ${p.furnishing}</span>
+            </div>
+          </div>
+
+          <!-- Specifications -->
+          <div class="detail-section">
+            <h3>🏷️ Property Specifications</h3>
+            <div class="spec-grid">
+              <div class="spec-item"><span class="spec-label">Property Type</span><span class="spec-val">${p.type}</span></div>
+              <div class="spec-item"><span class="spec-label">BHK</span><span class="spec-val">${p.bhk} BHK</span></div>
+              <div class="spec-item"><span class="spec-label">Area</span><span class="spec-val">${p.area} sq.ft</span></div>
+              <div class="spec-item"><span class="spec-label">Floor</span><span class="spec-val">${p.floor}</span></div>
+              <div class="spec-item"><span class="spec-label">Balcony</span><span class="spec-val">${p.balcony} Balcony</span></div>
+              <div class="spec-item"><span class="spec-label">Furnishing</span><span class="spec-val">${p.furnishing}</span></div>
+              <div class="spec-item"><span class="spec-label">Water Supply</span><span class="spec-val">${p.water}</span></div>
+              <div class="spec-item"><span class="spec-label">Parking</span><span class="spec-val">${p.parking?'Available':'Not Available'}</span></div>
+              <div class="spec-item"><span class="spec-label">Pet Friendly</span><span class="spec-val">${p.petFriendly?'Yes':'No'}</span></div>
+              <div class="spec-item"><span class="spec-label">Power Backup</span><span class="spec-val">${p.powerBackup?'Yes':'No'}</span></div>
+              <div class="spec-item"><span class="spec-label">Internet</span><span class="spec-val">${p.wifi?'Wi-Fi Ready':'No'}</span></div>
+              <div class="spec-item"><span class="spec-label">Available From</span><span class="spec-val">${new Date(p.availableFrom).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span></div>
+            </div>
+          </div>
+
+          <!-- Safety & Security -->
+          <div class="detail-section">
+            <h3>🔒 Safety & Security</h3>
+            <div class="spec-grid">
+              <div class="spec-item"><span class="spec-label">CCTV</span><span class="spec-val">${p.cctv?'✅ Available':'❌ Not Available'}</span></div>
+              <div class="spec-item"><span class="spec-label">Gated Community</span><span class="spec-val">${p.gated?'✅ Yes':'❌ No'}</span></div>
+              <div class="spec-item"><span class="spec-label">Verified Listing</span><span class="spec-val">${p.verified?'✅ Verified':'⚠️ Unverified'}</span></div>
+            </div>
+          </div>
+
+          <!-- Amenities -->
+          <div class="detail-section">
+            <h3>✨ Amenities</h3>
+            <div>${p.amenities.map(a=>`<span class="amenity-tag">${a}</span>`).join('')}</div>
+          </div>
+
+          <!-- Nearby Facilities -->
+          <div class="detail-section">
+            <h3>📍 Nearby Facilities</h3>
+            <div class="nearby-list">
+              ${p.nearby.schools.map(s=>`<div class="nearby-item"><span class="nearby-icon">🏫</span><div><div style="font-weight:600;font-size:0.9rem">${s.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">School • ${s.dist}</div></div></div>`).join('')}
+              ${p.nearby.hospitals.map(h=>`<div class="nearby-item"><span class="nearby-icon">🏥</span><div><div style="font-weight:600;font-size:0.9rem">${h.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">Hospital • ${h.dist}</div></div></div>`).join('')}
+              ${p.nearby.metro.map(m=>`<div class="nearby-item"><span class="nearby-icon">🚇</span><div><div style="font-weight:600;font-size:0.9rem">${m.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">Metro • ${m.dist}</div></div></div>`).join('')}
+              ${p.nearby.supermarkets.map(s=>`<div class="nearby-item"><span class="nearby-icon">🛒</span><div><div style="font-weight:600;font-size:0.9rem">${s.name}</div><div style="font-size:0.8rem;color:var(--text-muted)">Supermarket • ${s.dist}</div></div></div>`).join('')}
+              <div class="nearby-item"><span class="nearby-icon">🚒</span><div><div style="font-weight:600;font-size:0.9rem">Fire Station</div><div style="font-size:0.8rem;color:var(--text-muted)">Emergency • 2.5 km</div></div></div>
+              <div class="nearby-item"><span class="nearby-icon">👮</span><div><div style="font-weight:600;font-size:0.9rem">Police Station</div><div style="font-size:0.8rem;color:var(--text-muted)">Emergency • 1.8 km</div></div></div>
+            </div>
+          </div>
+
+          <!-- Locality Insights -->
+          <div class="detail-section">
+            <h3>🌆 Locality Insights</h3>
+            ${Object.entries(p.localityScore).map(([k,v]) => `
+              <div class="score-row">
+                <span style="font-size:0.88rem;min-width:130px;color:var(--text-muted)">${k.charAt(0).toUpperCase()+k.slice(1).replace(/([A-Z])/g,' $1')}</span>
+                <div class="score-bar-wrap"><div class="score-bar" style="width:${v/5*100}%"></div></div>
+                <span style="font-size:0.88rem;font-weight:700;color:var(--primary);min-width:30px;text-align:right">${v}/5</span>
+              </div>`).join('')}
+          </div>
+
+          <!-- Virtual Tour placeholder -->
+          <div class="detail-section" id="virtual-tour">
+            <h3>🎬 Virtual Tour</h3>
+            <div class="tour-embed" onclick="openTour()">
+              <div>▶️</div>
+              <div style="font-size:1rem;color:var(--text-muted)">Click to view Virtual Tour</div>
+            </div>
+          </div>
+
+          <!-- Report -->
+          <div style="text-align:right;padding-bottom:1rem">
+            <span class="report-link" onclick="document.getElementById('report-modal').classList.add('open')">🚩 Report this listing</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: Sidebar -->
+        <div class="info-sidebar">
+          <div class="price-big">${p.priceLabel}</div>
+          <div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem">${p.purpose==='Buy'?'Sale Price':'Per Month'}</div>
+          <div style="font-size:0.88rem;color:var(--text-muted);margin-bottom:1.2rem">Available from: <strong>${new Date(p.availableFrom).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</strong></div>
+
+          <button type="button" id="btn-schedule-visit" class="btn btn-primary w-full mb-1" onclick="openSchedule()">📅 Schedule Visit</button>
+          <button type="button" id="btn-contact-owner" class="btn btn-outline w-full" onclick="document.getElementById('contact-modal').classList.add('open')">✉️ Contact Owner</button>
+
+          <hr class="divider"/>
+
+          <div class="owner-card">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:0.8rem">
+              <div class="owner-avatar">${p.owner.name[0]}</div>
+              <div>
+                <div style="font-weight:700;font-size:0.95rem">${p.owner.name}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted)">${p.owner.type}</div>
+              </div>
+            </div>
+            <a href="tel:${p.owner.phone}" class="btn btn-sm btn-primary w-full">📞 Call ${p.owner.phone}</a>
+          </div>
+
+          <hr class="divider"/>
+
+          <div style="font-size:0.85rem">
+            <div class="flex-between mb-1"><span>⭐ Rating</span><strong>${p.rating}/5</strong></div>
+            <div class="flex-between mb-1"><span>🏘️ Type</span><strong>${p.type}</strong></div>
+            <div class="flex-between mb-1"><span>📐 Area</span><strong>${p.area} sq.ft</strong></div>
+            <div class="flex-between"><span>🏙️ City</span><strong>${p.city}</strong></div>
+          </div>
+
+          <hr class="divider"/>
+
+          <!-- TC60: Cost Summary on property page -->
+          <div style="background:var(--primary-light);border-radius:var(--radius);padding:1rem;margin-bottom:10px">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:8px;color:var(--primary)">💰 Estimated Monthly Cost</div>
+            <div style="font-size:0.82rem;display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">Rent/EMI</span><strong>${p.priceLabel}</strong></div>
+            <div style="font-size:0.82rem;display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">Maintenance (est.)</span><strong>₹2,000</strong></div>
+            <div style="font-size:0.82rem;display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-muted)">Utilities (est.)</span><strong>₹3,000</strong></div>
+            <div style="font-size:0.82rem;display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:6px;margin-top:4px"><span style="font-weight:700;color:var(--primary)">Total (est.)</span><strong style="color:var(--primary)">₹${(p.price + 5000).toLocaleString('en-IN')}/mo</strong></div>
+          </div>
+
+          <a href="budget-planner.html?rent=${p.price}" class="btn w-full" style="background:var(--primary-light);color:var(--primary)">💰 Full Budget Planner</a>
+          <a href="compare.html" class="btn w-full mt-1" style="background:#f0fdf4;color:var(--success)" onclick="addToCompare(${p.id})">⚖️ Add to Compare</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function setMainImg(thumb, src) {
+    document.getElementById('main-img').src = src;
+    document.querySelectorAll('.gallery-thumbs img').forEach(t => t.classList.remove('active'));
+    thumb.classList.add('active');
+  }
+
+  function openSchedule() {
+    if (!Auth.getCurrentUser()) { window.location.href='login.html'; return; }
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('visit-date').min = today;
+    const user = Auth.getCurrentUser();
+    document.getElementById('visit-name').value = user.name || '';
+    document.getElementById('schedule-modal').classList.add('open');
+  }
+
+  function closeModal(id='schedule-modal') {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function confirmBooking() {
+    const date = document.getElementById('visit-date').value;
+    const time = document.getElementById('visit-time').value;
+    const name = document.getElementById('visit-name').value.trim();
+    const phone = document.getElementById('visit-phone').value.trim();
+    const alertEl = document.getElementById('modal-alert');
+    if (!date || !time || !name || !phone) { alertEl.innerHTML='<div class="alert alert-error">Please fill all fields.</div>'; return; }
+    if (!/^\d{10}$/.test(phone)) { alertEl.innerHTML='<div class="alert alert-error">Enter a valid 10-digit phone number.</div>'; return; }
+    // TC43: Validate selected date is not in the past
+    const today = new Date().toISOString().split('T')[0];
+    if (date < today) { alertEl.innerHTML='<div class="alert alert-error">Please select a future date.</div>'; return; }
+    // TC43: Prevent duplicate slot booking for same property
+    const user = Auth.getCurrentUser();
+    const duplicate = (user.appointments || []).find(a => a.propId === prop.id && a.date === date && a.time === time);
+    if (duplicate) { alertEl.innerHTML='<div class="alert alert-error">You already have a booking for this slot.</div>'; return; }
+    Auth.bookAppointment({ propId: prop.id, propTitle: prop.title, date, time, name, phone, ownerName: prop.owner.name });
+    closeModal();
+    showToast('Visit booked successfully! 📅', 'success');
+  }
+
+  function sendInquiry() {
+    const msg = document.getElementById('contact-msg').value.trim();
+    const name = document.getElementById('contact-name').value.trim();
+    const phone = document.getElementById('contact-phone').value.trim();
+    const alertEl = document.getElementById('contact-alert');
+    if (!msg) { alertEl.innerHTML='<div class="alert alert-error">Please enter your message.</div>'; return; }
+    if (!name) { alertEl.innerHTML='<div class="alert alert-error">Please enter your name.</div>'; return; }
+    if (!/^\d{10}$/.test(phone)) { alertEl.innerHTML='<div class="alert alert-error">Enter a valid 10-digit phone number.</div>'; return; }
+    if (msg.length > 500) { alertEl.innerHTML='<div class="alert alert-error">Message cannot exceed 500 characters.</div>'; return; }
+    closeModal('contact-modal');
+    showToast('Inquiry sent to owner! ✉️', 'success');
+  }
+
+  function submitReport() {
+    const reason = document.getElementById('report-reason').value;
+    const alertEl = document.getElementById('report-alert');
+    if (!reason) { alertEl.innerHTML='<div class="alert alert-error" style="margin-top:6px">Please select a reason.</div>'; return; }
+    closeModal('report-modal');
+    showToast('Report submitted. We\'ll review it shortly.', '');
+  }
+
+  function toggleFav(id, btn) {
+    if (!Auth.getCurrentUser()) { window.location.href='login.html'; return; }
+    const isFav = Auth.toggleFavorite(id);
+    btn.textContent = isFav ? '❤️' : '🤍';
+    showToast(isFav?'Added to favorites':'Removed from favorites', isFav?'success':'');
+  }
+
+  function addToCompare(id) {
+    let list = JSON.parse(sessionStorage.getItem('compare_list') || '[]');
+    if (list.includes(id)) { showToast('Already in comparison list', 'error'); return; }
+    if (list.length >= 3) { showToast('Max 3 properties can be compared', 'error'); return; }
+    list.push(id);
+    sessionStorage.setItem('compare_list', JSON.stringify(list));
+    showToast('Added to compare ⚖️', 'success');
+  }
+
+  function openTour() {
+    // TC24: Show actual virtual tour embed if video URL is available, else informative message
+    const tourSection = document.getElementById('virtual-tour');
+    if (!tourSection) return;
+    const youtubeEmbed = 'https://www.youtube.com/embed/videoseries?list=PLbpi6ZahtOH6Ar_3GPy3workJDd6f07TK';
+    tourSection.innerHTML = `
+      <div style="font-size:1rem;font-weight:700;margin-bottom:0.8rem;border-bottom:1.5px solid var(--border);padding-bottom:0.6rem">🎬 Virtual Tour</div>
+      <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:var(--radius-lg)">
+        <iframe src="${youtubeEmbed}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:var(--radius-lg)" allowfullscreen title="Virtual Tour"></iframe>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-top:8px">📌 Virtual tour is a demo embed. Actual tour varies per property.</p>
+    `;
+  }
+
+  // Character counter for inquiry message
+  const msgEl = document.getElementById('contact-msg');
+  if (msgEl) msgEl.addEventListener('input', function() {
+    const el = document.getElementById('msg-count');
+    if (el) el.textContent = this.value.length;
+  });
+
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  });
+
+  renderNavUser();
+</script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login / Register – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; background: linear-gradient(135deg,#1a56db 0%,#0ea5e9 100%); }
+    .auth-wrapper { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem; }
+    .auth-card { background:white; border-radius:20px; padding:2.5rem 2rem; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,0.18); }
+    .auth-logo { text-align:center; margin-bottom:1.5rem; }
+    .auth-logo a { font-size:1.8rem; font-weight:900; color:var(--primary); text-decoration:none; }
+    .auth-logo a span { color:var(--accent); }
+    .auth-logo p { color:var(--text-muted); font-size:0.9rem; margin-top:4px; }
+    .auth-tabs { display:flex; border:2px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:1.8rem; }
+    .auth-tab { flex:1; text-align:center; padding:10px; font-weight:700; cursor:pointer; font-size:0.95rem; transition:all 0.2s; background:white; color:var(--text-muted); border:none; }
+    .auth-tab.active { background:var(--primary); color:white; }
+    .auth-form { display:none; }
+    .auth-form.active { display:block; }
+    .pwd-wrap { position:relative; }
+    .pwd-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; }
+    .divider-text { text-align:center; color:var(--text-muted); font-size:0.82rem; position:relative; margin:1rem 0; }
+    .divider-text::before, .divider-text::after { content:''; position:absolute; top:50%; width:40%; height:1px; background:var(--border); }
+    .divider-text::before { left:0; } .divider-text::after { right:0; }
+    .strength-bar { height:4px; border-radius:4px; margin-top:5px; transition:width 0.3s; background:#e5e7eb; }
+    .strength-fill { height:4px; border-radius:4px; width:0; transition:width 0.3s,background 0.3s; }
+  </style>
+</head>
+<body>
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <a href="index.html">Prop<span>Find</span></a>
+      <p>India's Smart Property Discovery Platform</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form class="auth-form active" id="form-login" onsubmit="handleLogin(event)">
+      <div id="login-alert"></div>
+      <div class="form-group">
+        <label>Email or Username</label>
+        <input type="text" class="form-control" id="login-id" placeholder="Enter your email or username" required/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="pwd-wrap">
+          <input type="password" class="form-control" id="login-pwd" placeholder="Enter your password" required/>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('login-pwd',this)">👁</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+        <a href="#" style="font-size:0.85rem;" onclick="showForgotMsg()">Forgot password?</a>
+      </div>
+      <button type="submit" id="btn-login" class="btn btn-primary w-full btn-lg">Login</button>
+      <p class="text-center mt-2" style="font-size:0.88rem;color:var(--text-muted)">
+        Don't have an account? <a href="#" onclick="switchTab('register')">Register now</a>
+      </p>
+
+      <!-- DEFAULT DEMO ACCOUNTS HINT -->
+      <div style="margin-top:1.2rem;background:#f0f4ff;border:1.5px solid #c7d7f9;border-radius:10px;padding:12px 14px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#1a56db;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🔑 Demo Accounts</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:white;border-radius:7px;padding:7px 10px;border:1px solid #dbe4f0;">
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:#1e293b;">Demo User</div>
+              <div style="font-size:0.78rem;color:#64748b;">Username: <b>demo</b> &nbsp;|&nbsp; Password: <b>demo123</b></div>
+            </div>
+            <button type="button" id="btn-demo-user" onclick="fillLogin('demo','demo123')" style="background:#1a56db;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">Use →</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:white;border-radius:7px;padding:7px 10px;border:1px solid #dbe4f0;">
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:#1e293b;">Admin User</div>
+              <div style="font-size:0.78rem;color:#64748b;">Username: <b>admin</b> &nbsp;|&nbsp; Password: <b>admin123</b></div>
+            </div>
+            <button type="button" id="btn-demo-admin" onclick="fillLogin('admin','admin123')" style="background:#1a56db;color:white;border:none;padding:5px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">Use →</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form class="auth-form" id="form-register" onsubmit="handleRegister(event)">
+      <div id="reg-alert"></div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" class="form-control" id="reg-name" placeholder="Enter your full name" required minlength="2"/>
+      </div>
+      <div class="form-group">
+        <label>Email or Username</label>
+        <input type="text" class="form-control" id="reg-id" placeholder="Email or create a username" required/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="pwd-wrap">
+          <input type="password" class="form-control" id="reg-pwd" placeholder="Create a strong password" required minlength="6" oninput="checkStrength(this.value)"/>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('reg-pwd',this)">👁</button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div id="strength-label" style="font-size:0.78rem;margin-top:3px;color:var(--text-muted)"></div>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <div class="pwd-wrap">
+          <input type="password" class="form-control" id="reg-cpwd" placeholder="Repeat your password" required/>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('reg-cpwd',this)">👁</button>
+        </div>
+      </div>
+      <button type="submit" id="btn-register" class="btn btn-primary w-full btn-lg">Create Account</button>
+      <p class="text-center mt-2" style="font-size:0.88rem;color:var(--text-muted)">
+        Already have an account? <a href="#" onclick="switchTab('login')">Login</a>
+      </p>
+    </form>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  // Auto-detect tab from URL
+  const params = new URLSearchParams(location.search);
+  if (params.get('tab') === 'register') switchTab('register');
+
+  // Redirect if already logged in
+  if (Auth.getCurrentUser()) window.location.href = 'index.html';
+
+  function fillLogin(username, password) {
+    document.getElementById('login-id').value = username;
+    document.getElementById('login-pwd').value = password;
+    document.getElementById('login-id').focus();
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('form-login').classList.toggle('active', tab === 'login');
+    document.getElementById('form-register').classList.toggle('active', tab === 'register');
+  }
+
+  function togglePwd(id, btn) {
+    const el = document.getElementById(id);
+    if (el.type === 'password') { el.type = 'text'; btn.textContent = '🙈'; }
+    else { el.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  function checkStrength(val) {
+    const fill = document.getElementById('strength-fill');
+    const label = document.getElementById('strength-label');
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^a-zA-Z0-9]/.test(val)) score++;
+    const levels = [
+      { w: '20%', bg: '#ef4444', txt: 'Weak' },
+      { w: '40%', bg: '#f59e0b', txt: 'Fair' },
+      { w: '70%', bg: '#3b82f6', txt: 'Good' },
+      { w: '100%', bg: '#10b981', txt: 'Strong' }
+    ];
+    const lv = levels[score - 1] || { w: '5%', bg: '#e5e7eb', txt: '' };
+    fill.style.width = lv.w; fill.style.background = lv.bg;
+    label.textContent = lv.txt; label.style.color = lv.bg;
+  }
+
+  function showAlert(id, msg, type) {
+    document.getElementById(id).innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const id = document.getElementById('login-id').value.trim();
+    const pwd = document.getElementById('login-pwd').value;
+    const res = Auth.login(id, pwd);
+    if (res.ok) {
+      showToast('Welcome back! 👋', 'success');
+      setTimeout(() => window.location.href = 'index.html', 500);
+    } else {
+      showAlert('login-alert', res.msg, 'error');
+    }
+  }
+
+  function handleRegister(e) {
+    e.preventDefault();
+    const name = document.getElementById('reg-name').value.trim();
+    const id = document.getElementById('reg-id').value.trim();
+    const pwd = document.getElementById('reg-pwd').value;
+    const cpwd = document.getElementById('reg-cpwd').value;
+    if (pwd !== cpwd) { showAlert('reg-alert', 'Passwords do not match.', 'error'); return; }
+    if (pwd.length < 6) { showAlert('reg-alert', 'Password must be at least 6 characters.', 'error'); return; }
+    const res = Auth.register(name, id, pwd);
+    if (res.ok) {
+      showToast('Account created successfully! 🎉', 'success');
+      setTimeout(() => window.location.href = 'index.html', 500);
+    } else {
+      showAlert('reg-alert', res.msg, 'error');
+    }
+  }
+
+  function showForgotMsg() {
+    showAlert('login-alert', 'Password reset: please contact support or re-register.', 'info');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Properties – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .results-header { background:white; padding:1.2rem 2rem; border-bottom:1.5px solid var(--border); display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+    .results-count { font-weight:700; font-size:1rem; }
+    .sort-select { padding:7px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:0.88rem; cursor:pointer; }
+    .view-toggle button { background:none; border:1.5px solid var(--border); padding:6px 10px; cursor:pointer; font-size:1rem; border-radius:6px; }
+    .view-toggle button.active { background:var(--primary); color:white; border-color:var(--primary); }
+    .no-results { text-align:center; padding:4rem; color:var(--text-muted); }
+    .no-results .icon { font-size:3rem; margin-bottom:1rem; }
+    .fav-btn { background:none; border:none; font-size:1.2rem; cursor:pointer; }
+    .card-img-wrap { position:relative; overflow:hidden; }
+    .purpose-badge { position:absolute; top:12px; left:12px; z-index:2; }
+    .list-view .card { display:flex; flex-direction:row; }
+    .list-view .card-img { width:240px; height:100%; min-height:160px; flex-shrink:0; }
+    .list-view .card-img-wrap { width:240px; flex-shrink:0; }
+    @media(max-width:640px) { .list-view .card { flex-direction:column; } .list-view .card-img-wrap { width:100%; } }
+    .price-display { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .compare-check { display:flex; align-items:center; gap:6px; font-size:0.82rem; color:var(--text-muted); cursor:pointer; margin-top:6px; }
+    .compare-bar { position:fixed; bottom:0; left:0; right:0; background:var(--primary); color:white; padding:14px 2rem; display:flex; align-items:center; justify-content:space-between; z-index:500; transform:translateY(100%); transition:transform 0.3s; }
+    .compare-bar.show { transform:translateY(0); }
+    .compare-items { display:flex; gap:12px; }
+    .compare-chip { background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:20px; font-size:0.85rem; }
+    .amenity-chip { background:var(--primary-light); color:var(--primary); padding:2px 8px; border-radius:12px; font-size:0.76rem; font-weight:600; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html" class="active">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<!-- SEARCH BAR -->
+<div style="background:var(--primary);padding:1rem 2rem;">
+  <div class="container">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="flex:2;min-width:160px;margin:0">
+        <input type="text" class="form-control" id="search-loc" placeholder="🔍 City, Locality or Pincode"/>
+      </div>
+      <div class="form-group" style="margin:0;min-width:120px">
+        <select class="form-control" id="search-purpose">
+          <option value="">All</option>
+          <option value="Rent">Rent</option>
+          <option value="Buy">Buy</option>
+          <option value="Lease">Lease</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;min-width:120px">
+        <select class="form-control" id="search-type">
+          <option value="">All Types</option>
+          <option>Apartment</option>
+          <option>Villa</option>
+          <option>Independent House</option>
+          <option>Studio</option>
+          <option>Builder Floor</option>
+          <option>Penthouse</option>
+        </select>
+      </div>
+      <button type="button" id="btn-search" class="btn btn-accent" onclick="applyFilters()">Search</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS HEADER -->
+<div class="results-header">
+  <span class="results-count" id="results-count">Loading...</span>
+  <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <label style="font-size:0.88rem;color:var(--text-muted)">Sort:</label>
+    <select class="sort-select" id="sort-by" onchange="applyFilters()">
+      <option value="relevance">Relevance</option>
+      <option value="price-asc">Price: Low to High</option>
+      <option value="price-desc">Price: High to Low</option>
+      <option value="newest">Newest First</option>
+      <option value="rating">Top Rated</option>
+    </select>
+    <div class="view-toggle">
+      <button id="btn-grid" class="active" onclick="setView('grid')" title="Grid View">⊞</button>
+      <button id="btn-list" onclick="setView('list')" title="List View">☰</button>
+    </div>
+    <a href="map-view.html" class="btn btn-outline btn-sm">🗺️ Map View</a>
+    <a href="compare.html" class="btn btn-sm" style="background:var(--primary-light);color:var(--primary)" id="compare-btn" onclick="gotoCompare()">⚖️ Compare (<span id="compare-count">0</span>)</a>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="container" style="padding-top:1.5rem;padding-bottom:2rem">
+  <div class="layout-sidebar">
+
+    <!-- SIDEBAR FILTERS -->
+    <aside>
+      <div class="filter-sidebar">
+        <div class="filter-title">
+          Filters
+          <button type="button" id="btn-clear-filters" class="btn btn-sm btn-outline" onclick="clearFilters()">Clear All</button>
+        </div>
+
+        <!-- Budget -->
+        <div class="filter-section">
+          <div class="filter-label">Budget Range</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="number" class="form-control" id="f-min" placeholder="Min ₹" style="font-size:0.85rem"/>
+            <input type="number" class="form-control" id="f-max" placeholder="Max ₹" style="font-size:0.85rem"/>
+          </div>
+        </div>
+
+        <!-- BHK -->
+        <div class="filter-section">
+          <div class="filter-label">BHK</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button type="button" id="bhk-btn-1" class="btn btn-sm btn-outline bhk-btn" onclick="toggleBHK(this,'1')">1 BHK</button>
+            <button type="button" id="bhk-btn-2" class="btn btn-sm btn-outline bhk-btn" onclick="toggleBHK(this,'2')">2 BHK</button>
+            <button type="button" id="bhk-btn-3" class="btn btn-sm btn-outline bhk-btn" onclick="toggleBHK(this,'3')">3 BHK</button>
+            <button type="button" id="bhk-btn-4" class="btn btn-sm btn-outline bhk-btn" onclick="toggleBHK(this,'4')">4 BHK+</button>
+          </div>
+        </div>
+
+        <!-- Furnishing -->
+        <div class="filter-section">
+          <div class="filter-label">Furnishing</div>
+          <label class="form-check"><input type="radio" name="furnish" value="" checked onchange="applyFilters()"/> Any</label>
+          <label class="form-check"><input type="radio" name="furnish" value="Fully Furnished" onchange="applyFilters()"/> Fully Furnished</label>
+          <label class="form-check"><input type="radio" name="furnish" value="Semi-Furnished" onchange="applyFilters()"/> Semi-Furnished</label>
+          <label class="form-check"><input type="radio" name="furnish" value="Unfurnished" onchange="applyFilters()"/> Unfurnished</label>
+        </div>
+
+        <!-- Amenities -->
+        <div class="filter-section">
+          <div class="filter-label">Amenities</div>
+          <label class="form-check"><input type="checkbox" id="f-wifi" onchange="applyFilters()"/> Wi-Fi Ready</label>
+          <label class="form-check"><input type="checkbox" id="f-parking" onchange="applyFilters()"/> Parking</label>
+          <label class="form-check"><input type="checkbox" id="f-pet" onchange="applyFilters()"/> Pet Friendly</label>
+          <label class="form-check"><input type="checkbox" id="f-power" onchange="applyFilters()"/> Power Backup</label>
+          <label class="form-check"><input type="checkbox" id="f-gated" onchange="applyFilters()"/> Gated Community</label>
+          <label class="form-check"><input type="checkbox" id="f-cctv" onchange="applyFilters()"/> CCTV</label>
+          <label class="form-check"><input type="checkbox" id="f-verified" onchange="applyFilters()"/> Verified Only</label>
+        </div>
+
+        <!-- Property Type -->
+        <div class="filter-section">
+          <div class="filter-label">Property Type</div>
+          <label class="form-check"><input type="checkbox" id="type-chk-apartment" class="type-chk" value="Apartment" onchange="applyFilters()"/> Apartment</label>
+          <label class="form-check"><input type="checkbox" id="type-chk-villa" class="type-chk" value="Villa" onchange="applyFilters()"/> Villa</label>
+          <label class="form-check"><input type="checkbox" id="type-chk-independent-house" class="type-chk" value="Independent House" onchange="applyFilters()"/> Independent House</label>
+          <label class="form-check"><input type="checkbox" id="type-chk-studio" class="type-chk" value="Studio" onchange="applyFilters()"/> Studio</label>
+          <label class="form-check"><input type="checkbox" id="type-chk-builder-floor" class="type-chk" value="Builder Floor" onchange="applyFilters()"/> Builder Floor</label>
+          <label class="form-check"><input type="checkbox" id="type-chk-penthouse" class="type-chk" value="Penthouse" onchange="applyFilters()"/> Penthouse</label>
+        </div>
+
+        <button type="button" id="btn-apply-filters" class="btn btn-primary w-full" onclick="applyFilters()">Apply Filters</button>
+      </div>
+    </aside>
+
+    <!-- RESULTS GRID -->
+    <main>
+      <div id="results-grid" class="grid-3"></div>
+      <div id="no-results" class="no-results hidden">
+        <div class="icon">🏚️</div>
+        <h3>No Properties Found</h3>
+        <p>Try adjusting your filters or search in a different location.</p>
+        <button type="button" id="btn-clear-filters-empty" class="btn btn-primary mt-2" onclick="clearFilters()">Clear Filters</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- COMPARE BAR -->
+<div class="compare-bar" id="compare-bar">
+  <div>
+    <strong>Compare Properties</strong>
+    <div class="compare-items" id="compare-items"></div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button type="button" id="btn-compare-now" class="btn" style="background:white;color:var(--primary)" onclick="gotoCompare()">Compare Now</button>
+    <button type="button" id="btn-clear-compare" class="btn" style="background:rgba(255,255,255,0.2);color:white" onclick="clearCompare()">Clear</button>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  let selectedBHK = [];
+  let compareList = JSON.parse(sessionStorage.getItem('compare_list') || '[]');
+  let currentView = 'grid';
+
+  // Load from URL params
+  const urlP = new URLSearchParams(location.search);
+  if (urlP.get('loc')) document.getElementById('search-loc').value = urlP.get('loc');
+  if (urlP.get('purpose')) document.getElementById('search-purpose').value = urlP.get('purpose');
+  if (urlP.get('type')) document.getElementById('search-type').value = urlP.get('type');
+
+  function toggleBHK(btn, val) {
+    const i = selectedBHK.indexOf(val);
+    if (i > -1) { selectedBHK.splice(i,1); btn.classList.remove('btn-primary'); btn.classList.add('btn-outline'); }
+    else { selectedBHK.push(val); btn.classList.add('btn-primary'); btn.classList.remove('btn-outline'); }
+    applyFilters();
+  }
+
+  function clearFilters() {
+    document.getElementById('search-loc').value = '';
+    document.getElementById('search-purpose').value = '';
+    document.getElementById('search-type').value = '';
+    document.getElementById('f-min').value = '';
+    document.getElementById('f-max').value = '';
+    ['f-wifi','f-parking','f-pet','f-power','f-gated','f-cctv','f-verified'].forEach(id => document.getElementById(id).checked = false);
+    document.querySelectorAll('.type-chk').forEach(c => c.checked = false);
+    document.querySelectorAll('input[name="furnish"]')[0].checked = true;
+    selectedBHK = [];
+    document.querySelectorAll('.bhk-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-outline'); });
+    applyFilters();
+  }
+
+  function applyFilters() {
+    let results = [...PROPERTIES];
+    const loc = document.getElementById('search-loc').value.toLowerCase().trim();
+    const purpose = document.getElementById('search-purpose').value;
+    const type = document.getElementById('search-type').value;
+    const minRaw = document.getElementById('f-min').value.trim();
+    const maxRaw = document.getElementById('f-max').value.trim();
+    const minP = minRaw !== '' ? parseFloat(minRaw) : 0;
+    const maxP = maxRaw !== '' ? parseFloat(maxRaw) : Infinity;
+    const furnish = document.querySelector('input[name="furnish"]:checked').value;
+    const typeChecked = [...document.querySelectorAll('.type-chk:checked')].map(c => c.value);
+
+    if (loc) results = results.filter(p => p.location.toLowerCase().includes(loc) || p.city.toLowerCase().includes(loc) || p.pincode.includes(loc));
+    if (purpose) results = results.filter(p => p.purpose === purpose);
+    if (type) results = results.filter(p => p.type === type);
+    if (minP) results = results.filter(p => p.price >= minP);
+    if (maxP !== Infinity) results = results.filter(p => p.price <= maxP);
+    if (furnish) results = results.filter(p => p.furnishing === furnish);
+    if (selectedBHK.length) results = results.filter(p => selectedBHK.includes(String(p.bhk >= 4 ? 4 : p.bhk)));
+    if (typeChecked.length) results = results.filter(p => typeChecked.includes(p.type));
+    if (document.getElementById('f-wifi').checked) results = results.filter(p => p.wifi);
+    if (document.getElementById('f-parking').checked) results = results.filter(p => p.parking);
+    if (document.getElementById('f-pet').checked) results = results.filter(p => p.petFriendly);
+    if (document.getElementById('f-power').checked) results = results.filter(p => p.powerBackup);
+    if (document.getElementById('f-gated').checked) results = results.filter(p => p.gated);
+    if (document.getElementById('f-cctv').checked) results = results.filter(p => p.cctv);
+    if (document.getElementById('f-verified').checked) results = results.filter(p => p.verified);
+
+    const sort = document.getElementById('sort-by').value;
+    if (sort === 'price-asc') results.sort((a,b) => a.price - b.price);
+    else if (sort === 'price-desc') results.sort((a,b) => b.price - a.price);
+    else if (sort === 'rating') results.sort((a,b) => b.rating - a.rating);
+    else if (sort === 'newest') results.sort((a,b) => new Date(a.availableFrom) - new Date(b.availableFrom));
+
+    renderResults(results);
+  }
+
+  function setView(v) {
+    currentView = v;
+    document.getElementById('btn-grid').classList.toggle('active', v === 'grid');
+    document.getElementById('btn-list').classList.toggle('active', v === 'list');
+    applyFilters();
+  }
+
+  function renderResults(results) {
+    const grid = document.getElementById('results-grid');
+    const none = document.getElementById('no-results');
+    document.getElementById('results-count').textContent = `${results.length} properties found`;
+    if (!results.length) { grid.innerHTML = ''; none.classList.remove('hidden'); return; }
+    none.classList.add('hidden');
+    grid.className = currentView === 'list' ? 'list-view' : 'grid-3';
+    grid.innerHTML = results.map(p => `
+      <div class="card" style="position:relative">
+        <div class="card-img-wrap">
+          <img src="${p.images[0]}" alt="${p.title}" class="card-img" style="${currentView==='list'?'width:240px;height:100%;min-height:160px':'height:200px'}" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'"/>
+          <span class="badge badge-primary purpose-badge">${p.purpose}</span>
+          <button type="button" id="fav-btn-${p.id}" class="fav-btn" style="position:absolute;top:12px;right:12px;z-index:2;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))" onclick="toggleFav(event,${p.id},this)">${Auth.isFavorite(p.id)?'❤️':'🤍'}</button>
+        </div>
+        <div class="card-body">
+          <div class="flex-between">
+            <div class="card-title">${p.title}</div>
+            ${p.verified ? '<span class="badge badge-verified" style="font-size:0.72rem">✓ Verified</span>' : ''}
+          </div>
+          <div class="card-subtitle">📍 ${p.location}</div>
+          <div class="card-price">${p.priceLabel}</div>
+          <div class="prop-icons">
+            <span class="prop-icon">🛏 ${p.bhk} BHK</span>
+            <span class="prop-icon">📐 ${p.area} sqft</span>
+            <span class="prop-icon">🪑 ${p.furnishing}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
+            ${p.amenities.slice(0,3).map(a=>`<span class="amenity-chip">${a}</span>`).join('')}
+            ${p.amenities.length>3?`<span class="amenity-chip">+${p.amenities.length-3}</span>`:''}
+          </div>
+          <div class="compare-check">
+            <input type="checkbox" id="compare-chk-${p.id}" ${compareList.includes(p.id)?'checked':''} onchange="toggleCompare(${p.id},this)"/>
+            Add to Compare
+          </div>
+          <a href="property-detail.html?id=${p.id}" class="btn btn-primary w-full mt-2">View Details</a>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function toggleFav(e, id, btn) {
+    e.preventDefault();
+    if (!Auth.getCurrentUser()) { window.location.href='login.html'; return; }
+    const isFav = Auth.toggleFavorite(id);
+    btn.textContent = isFav ? '❤️' : '🤍';
+    showToast(isFav?'Added to favorites ❤️':'Removed from favorites', isFav?'success':'');
+  }
+
+  function toggleCompare(id, chk) {
+    if (chk.checked) {
+      if (compareList.length >= 3) { chk.checked=false; showToast('Max 3 properties can be compared','error'); return; }
+      if (!compareList.includes(id)) compareList.push(id);
+    } else {
+      compareList = compareList.filter(x => x !== id);
+    }
+    sessionStorage.setItem('compare_list', JSON.stringify(compareList));
+    updateCompareBar();
+  }
+
+  function updateCompareBar() {
+    const bar = document.getElementById('compare-bar');
+    const items = document.getElementById('compare-items');
+    const count = document.getElementById('compare-count');
+    count.textContent = compareList.length;
+    if (compareList.length > 0) {
+      bar.classList.add('show');
+      items.innerHTML = compareList.map(id => { const p = getPropertyById(id); return p ? `<span class="compare-chip">${p.title.split(' ').slice(0,2).join(' ')}</span>` : ''; }).join('');
+    } else { bar.classList.remove('show'); }
+  }
+
+  function clearCompare() {
+    compareList = [];
+    sessionStorage.setItem('compare_list','[]');
+    updateCompareBar();
+    applyFilters();
+  }
+
+  function gotoCompare() {
+    if (compareList.length < 2) { showToast('Select at least 2 properties to compare','error'); return; }
+    window.location.href = 'compare.html';
+  }
+
+  renderNavUser();
+  updateCompareBar();
+  applyFilters();
+</script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PropFind – India's Smart Property Platform</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .hero h1 em { font-style:normal; color:#fbbf24; }
+    .search-box { text-align:left; }
+    .stat-bar { background:white; padding:1.5rem 2rem; display:flex; gap:3rem; justify-content:center; flex-wrap:wrap; border-bottom:1.5px solid var(--border); }
+    .stat-item { text-align:center; }
+    .stat-num { font-size:1.6rem; font-weight:900; color:var(--primary); }
+    .stat-lbl { font-size:0.8rem; color:var(--text-muted); }
+    .purpose-tabs { display:flex; justify-content:center; gap:8px; margin-bottom:1.5rem; }
+    .prop-card-link { display:block; text-decoration:none; color:inherit; }
+    .fav-btn { background:none; border:none; font-size:1.3rem; cursor:pointer; position:absolute; top:12px; right:12px; z-index:2; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
+    .card-img-wrap { position:relative; overflow:hidden; }
+    .purpose-badge { position:absolute; top:12px; left:12px; z-index:2; }
+    .how-card { background:white; border-radius:var(--radius-lg); padding:1.8rem; text-align:center; border:1.5px solid var(--border); }
+    .how-icon { font-size:2.4rem; margin-bottom:1rem; }
+    .how-num { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; background:var(--primary); color:white; border-radius:50%; font-size:0.85rem; font-weight:700; margin-bottom:0.8rem; }
+    .feature-row { display:flex; align-items:center; gap:3rem; margin-bottom:3rem; flex-wrap:wrap; }
+    .feature-row img { width:48%; border-radius:var(--radius-lg); min-width:260px; }
+    .feature-text { flex:1; }
+    .feature-text h3 { font-size:1.4rem; font-weight:800; margin-bottom:0.8rem; }
+    .feature-text p { color:var(--text-muted); line-height:1.7; margin-bottom:1rem; }
+    .feature-list { list-style:none; }
+    .feature-list li { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:0.92rem; }
+    .feature-list li::before { content:'✓'; color:var(--primary); font-weight:900; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span>Find</span></a></div>
+  <ul class="nav-links" id="main-nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<!-- HERO SECTION -->
+<section class="hero">
+  <div class="container">
+    <h1>Find Your <em>Dream Home</em><br/>Smarter & Faster</h1>
+    <p>Search 10,000+ verified properties across India. Buy, Rent, or Lease with confidence.</p>
+
+    <div class="search-box">
+      <div class="purpose-tabs">
+        <button type="button" id="tab-rent" class="search-tab active" onclick="setPurpose('Rent',this)">🏠 Rent</button>
+        <button type="button" id="tab-buy" class="search-tab" onclick="setPurpose('Buy',this)">🔑 Buy</button>
+        <button type="button" id="tab-lease" class="search-tab" onclick="setPurpose('Lease',this)">📜 Lease</button>
+      </div>
+      <div class="search-row">
+        <div class="form-group" style="flex:2">
+          <label>Location</label>
+          <input type="text" class="form-control" id="search-loc" placeholder="City, Locality or Pincode"/>
+        </div>
+        <div class="form-group">
+          <label>Property Type</label>
+          <select class="form-control" id="search-type">
+            <option value="">All Types</option>
+            <option>Apartment</option>
+            <option>Villa</option>
+            <option>Independent House</option>
+            <option>Studio</option>
+            <option>Builder Floor</option>
+            <option>Penthouse</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>BHK</label>
+          <select class="form-control" id="search-bhk">
+            <option value="">Any BHK</option>
+            <option value="1">1 BHK</option>
+            <option value="2">2 BHK</option>
+            <option value="3">3 BHK</option>
+            <option value="4">4 BHK+</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:0">
+          <label>&nbsp;</label>
+          <button type="button" id="btn-search" class="btn btn-accent btn-lg" onclick="doSearch()">🔍 Search</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stat-bar">
+  <div class="stat-item"><div class="stat-num">10,000+</div><div class="stat-lbl">Properties Listed</div></div>
+  <div class="stat-item"><div class="stat-num">50+</div><div class="stat-lbl">Cities Covered</div></div>
+  <div class="stat-item"><div class="stat-num">8,500+</div><div class="stat-lbl">Happy Tenants</div></div>
+  <div class="stat-item"><div class="stat-num">2,000+</div><div class="stat-lbl">Verified Owners</div></div>
+</div>
+
+<!-- FEATURED PROPERTIES -->
+<section class="section">
+  <div class="container">
+    <div class="flex-between mb-3">
+      <div>
+        <div class="section-title">Featured Properties</div>
+        <div class="section-sub">Hand-picked top listings across India</div>
+      </div>
+      <a href="search-results.html" class="btn btn-outline">View All →</a>
+    </div>
+    <div class="grid-3" id="featured-grid"></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="background:var(--primary-light)">
+  <div class="container">
+    <div class="section-title text-center">How PropFind Works</div>
+    <div class="section-sub text-center">Simple steps to find your perfect property</div>
+    <div class="grid-4" style="margin-top:1.5rem">
+      <div class="how-card">
+        <div class="how-num">1</div>
+        <div class="how-icon">🔍</div>
+        <h4>Search</h4>
+        <p style="font-size:0.88rem;color:var(--text-muted)">Search by city, locality, budget, or pincode with smart filters</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">2</div>
+        <div class="how-icon">🗺️</div>
+        <h4>Explore on Map</h4>
+        <p style="font-size:0.88rem;color:var(--text-muted)">View properties on an interactive map with nearby facilities</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">3</div>
+        <div class="how-icon">❤️</div>
+        <h4>Shortlist</h4>
+        <p style="font-size:0.88rem;color:var(--text-muted)">Save favorites, compare side by side, and revisit anytime</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">4</div>
+        <div class="how-icon">📅</div>
+        <h4>Schedule Visit</h4>
+        <p style="font-size:0.88rem;color:var(--text-muted)">Book a property visit online and connect with owners directly</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<section class="section">
+  <div class="container">
+    <div class="feature-row">
+      <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=700&q=80" alt="Map View"/>
+      <div class="feature-text">
+        <h3>🗺️ Interactive Map View</h3>
+        <p>Explore properties visually with our interactive map. See nearby schools, hospitals, metro stations, and more — all in one place.</p>
+        <ul class="feature-list">
+          <li>Real-time property markers</li>
+          <li>Nearby facility overlays</li>
+          <li>Dynamic filter updates</li>
+          <li>One-click property preview</li>
+        </ul>
+        <a href="map-view.html" class="btn btn-primary mt-2">Open Map View</a>
+      </div>
+    </div>
+    <div class="feature-row" style="flex-direction:row-reverse">
+      <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=700&q=80" alt="Budget Planner"/>
+      <div class="feature-text">
+        <h3>💰 Smart Budget Planner</h3>
+        <p>Calculate your total monthly living expenses before you decide. Know what you can afford based on your salary and lifestyle needs.</p>
+        <ul class="feature-list">
+          <li>Rent + utility cost estimates</li>
+          <li>Affordability analysis</li>
+          <li>Deposit & moving cost calculator</li>
+          <li>Monthly savings projection</li>
+        </ul>
+        <a href="budget-planner.html" class="btn btn-primary mt-2">Try Budget Planner</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;padding:4rem 2rem;text-align:center">
+  <div class="container">
+    <h2 style="font-size:2rem;font-weight:900;margin-bottom:0.8rem">Ready to Post Your Property?</h2>
+    <p style="opacity:0.9;font-size:1.05rem;margin-bottom:1.5rem">Reach thousands of verified buyers and renters. List for free today.</p>
+    <a href="add-listing.html" class="btn btn-lg" style="background:white;color:var(--primary)">Post Your Property</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">Prop<span>Find</span></div>
+        <p style="font-size:0.85rem;line-height:1.7">India's smart property discovery platform. Buy, Rent, or Lease with confidence.</p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="search-results.html">Browse Properties</a></li>
+          <li><a href="map-view.html">Map View</a></li>
+          <li><a href="compare.html">Compare Properties</a></li>
+          <li><a href="budget-planner.html">Budget Planner</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>For Owners</h4>
+        <ul>
+          <li><a href="add-listing.html">Post Property</a></li>
+          <li><a href="dashboard.html">My Listings</a></li>
+        </ul>
+        <h4 style="margin-top:1rem">Account</h4>
+        <ul>
+          <li><a href="login.html">Login</a></li>
+          <li><a href="login.html?tab=register">Register</a></li>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="moving-assistant.html">📦 Moving Assistant</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Cities</h4>
+        <ul>
+          <li><a href="search-results.html?city=Bangalore">Bangalore</a></li>
+          <li><a href="search-results.html?city=Mumbai">Mumbai</a></li>
+          <li><a href="search-results.html?city=Hyderabad">Hyderabad</a></li>
+          <li><a href="search-results.html?city=Noida">Noida</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 PropFind. All rights reserved.</span>
+      <span>Made with ❤️ for India's property seekers</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/properties.js"></script>
+<script>
+  let currentPurpose = 'Rent';
+
+  function setPurpose(p, el) {
+    currentPurpose = p;
+    document.querySelectorAll('.purpose-tabs .search-tab').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function doSearch() {
+    const loc = document.getElementById('search-loc').value.trim();
+    const type = document.getElementById('search-type').value;
+    const bhk = document.getElementById('search-bhk').value;
+    const params = new URLSearchParams();
+    if (loc) params.set('loc', loc);
+    if (type) params.set('type', type);
+    if (bhk) params.set('bhk', bhk);
+    params.set('purpose', currentPurpose);
+    window.location.href = `search-results.html?${params.toString()}`;
+  }
+
+  // Enter key triggers search
+  document.getElementById('search-loc').addEventListener('keypress', e => { if (e.key === 'Enter') doSearch(); });
+
+  // Featured properties (top 6)
+  function renderFeatured() {
+    const grid = document.getElementById('featured-grid');
+    const featured = PROPERTIES.slice(0, 6);
+    grid.innerHTML = featured.map(p => `
+      <div class="card" style="position:relative">
+        <div class="card-img-wrap">
+          <img src="${p.images[0]}" alt="${p.title}" class="card-img" onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'"/>
+          <span class="badge badge-primary purpose-badge">${p.purpose}</span>
+          <button type="button" id="fav-btn-${p.id}" class="fav-btn" onclick="toggleFav(event,${p.id},this)" title="Save to favorites">${Auth.isFavorite(p.id) ? '❤️' : '🤍'}</button>
+        </div>
+        <div class="card-body">
+          <div class="card-title">${p.title}</div>
+          <div class="card-subtitle">📍 ${p.location}</div>
+          <div class="card-price">${p.priceLabel}</div>
+          <div class="prop-icons">
+            <span class="prop-icon">🛏 ${p.bhk} BHK</span>
+            <span class="prop-icon">📐 ${p.area} sqft</span>
+            <span class="prop-icon">🪑 ${p.furnishing}</span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            ${p.verified ? '<span class="badge badge-verified">✓ Verified</span>' : ''}
+            ${p.parking ? '<span class="badge badge-primary">🚗 Parking</span>' : ''}
+            ${p.petFriendly ? '<span class="badge badge-primary">🐾 Pet Friendly</span>' : ''}
+          </div>
+          <a href="property-detail.html?id=${p.id}" class="btn btn-primary w-full mt-2">View Details</a>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function toggleFav(e, id, btn) {
+    e.preventDefault();
+    const user = Auth.getCurrentUser();
+    if (!user) { window.location.href = 'login.html'; return; }
+    const isFav = Auth.toggleFavorite(id);
+    btn.textContent = isFav ? '❤️' : '🤍';
+    showToast(isFav ? 'Added to favorites ❤️' : 'Removed from favorites', isFav ? 'success' : '');
+  }
+
+  renderNavUser();
+  renderFeatured();
+</script>
+</body>
+</html>

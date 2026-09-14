@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Budget Planner – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .planner-layout { display:grid; grid-template-columns:420px 1fr; gap:1.5rem; align-items:start; }
+    @media(max-width:900px){ .planner-layout { grid-template-columns:1fr; } }
+    .planner-card { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; }
+    .result-card { background:linear-gradient(135deg,#1a56db,#0ea5e9); color:white; border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1rem; }
+    .result-card h3 { font-size:1rem; opacity:0.85; margin-bottom:4px; }
+    .result-card .big-num { font-size:2.2rem; font-weight:900; }
+    .result-card .sub { font-size:0.85rem; opacity:0.8; margin-top:4px; }
+    .breakdown-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:0.9rem; }
+    .breakdown-row:last-child { border-bottom:none; }
+    .breakdown-row .label { color:var(--text-muted); }
+    .breakdown-row .amount { font-weight:700; color:var(--text); }
+    .breakdown-row.total-row { background:var(--primary-light); margin:0 -1.5rem; padding:12px 1.5rem; border-radius:0 0 var(--radius-lg) var(--radius-lg); }
+    .breakdown-row.total-row .label { color:var(--primary); font-weight:700; }
+    .breakdown-row.total-row .amount { color:var(--primary); font-size:1.1rem; }
+    .affordability-bar-wrap { background:#e5e7eb; border-radius:8px; height:16px; margin:8px 0; overflow:hidden; }
+    .affordability-bar { height:16px; border-radius:8px; transition:width 0.5s; }
+    .tip-card { background:var(--primary-light); border-left:4px solid var(--primary); border-radius:0 var(--radius) var(--radius) 0; padding:10px 14px; font-size:0.88rem; margin-bottom:8px; }
+    .section-label { font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:0.8rem; margin-top:1.2rem; }
+    input[type="range"] { width:100%; }
+    .range-display { display:flex; justify-content:space-between; font-size:0.82rem; color:var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html" class="active">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<!-- HERO -->
+<div style="background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;padding:2.5rem 2rem;text-align:center">
+  <div class="container">
+    <h1 style="font-size:2rem;font-weight:900;margin-bottom:0.5rem">💰 Smart Budget Planner</h1>
+    <p style="opacity:0.9">Calculate your total monthly living expenses and affordability before you decide.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem;padding-bottom:3rem">
+  <div class="planner-layout">
+
+    <!-- INPUT FORM -->
+    <div class="planner-card">
+      <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.2rem">📝 Enter Your Details</h2>
+
+      <div class="section-label">💼 Income</div>
+      <div class="form-group">
+        <label>Monthly Salary (₹)</label>
+        <input type="number" class="form-control" id="inp-salary" placeholder="e.g. 80000" min="0" oninput="calculate()"/>
+      </div>
+
+      <div class="section-label">🏠 Rent & Housing</div>
+      <div class="form-group">
+        <label>Monthly Rent (₹) <span id="rent-val" style="color:var(--primary);font-weight:700"></span></label>
+        <input type="range" id="inp-rent" min="5000" max="200000" step="1000" value="25000" oninput="updateRentVal();calculate()"/>
+        <div class="range-display"><span>₹5,000</span><span>₹2,00,000</span></div>
+      </div>
+      <div class="form-group">
+        <label>Maintenance (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-maintenance" placeholder="e.g. 2000" value="2000" min="0" oninput="calculate()"/>
+      </div>
+
+      <div class="section-label">🔌 Utilities</div>
+      <div class="form-group">
+        <label>Electricity (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-electricity" placeholder="e.g. 1500" value="1500" min="0" oninput="calculate()"/>
+      </div>
+      <div class="form-group">
+        <label>Internet / Wi-Fi (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-internet" placeholder="e.g. 800" value="800" min="0" oninput="calculate()"/>
+      </div>
+      <div class="form-group">
+        <label>Parking (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-parking" placeholder="e.g. 500" value="0" min="0" oninput="calculate()"/>
+      </div>
+
+      <div class="section-label">🛒 Living Expenses</div>
+      <div class="form-group">
+        <label>Groceries & Food (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-food" placeholder="e.g. 8000" value="8000" min="0" oninput="calculate()"/>
+      </div>
+      <div class="form-group">
+        <label>Transport (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-transport" placeholder="e.g. 3000" value="3000" min="0" oninput="calculate()"/>
+      </div>
+      <div class="form-group">
+        <label>Other Expenses (₹/mo)</label>
+        <input type="number" class="form-control" id="inp-other" placeholder="e.g. 2000" value="2000" min="0" oninput="calculate()"/>
+      </div>
+
+      <div class="section-label">🚚 One-Time Moving Costs</div>
+      <div class="form-group">
+        <label>Security Deposit (₹) <small style="color:var(--text-muted)">(usually 2–3 months rent)</small></label>
+        <input type="number" class="form-control" id="inp-deposit" placeholder="auto-calculated" min="0" oninput="calculate()"/>
+      </div>
+      <div class="form-group">
+        <label>Moving / Packers (₹)</label>
+        <input type="number" class="form-control" id="inp-moving" placeholder="e.g. 10000" value="10000" min="0" oninput="calculate()"/>
+      </div>
+
+      <button type="button" id="btn-calculate" class="btn btn-primary w-full btn-lg" onclick="calculate()">Calculate Budget</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results-panel">
+      <div style="text-align:center;padding:3rem;color:var(--text-muted)">
+        <div style="font-size:3rem;margin-bottom:1rem">💰</div>
+        <p>Fill in the form to see your budget analysis</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+  function updateRentVal() {
+    const val = parseInt(document.getElementById('inp-rent').value);
+    document.getElementById('rent-val').textContent = fmt(val);
+    // Auto-fill deposit as 2× rent
+    const depEl = document.getElementById('inp-deposit');
+    if (!depEl.dataset.manual) depEl.value = val * 2;
+  }
+
+  document.getElementById('inp-deposit').addEventListener('input', function() {
+    this.dataset.manual = 'true';
+    calculate();
+  });
+
+  function v(id) {
+    const el = document.getElementById(id);
+    const raw = el ? el.value.trim() : '';
+    if (raw !== '' && isNaN(parseFloat(raw))) {
+      el.style.borderColor = 'var(--danger)';
+      return null; // signals invalid
+    }
+    el && (el.style.borderColor = '');
+    return raw !== '' ? parseFloat(raw) : 0;
+  }
+
+  function calculate() {
+    // TC59: Detect any invalid (non-numeric) inputs before calculating
+    const numericIds = ['inp-salary','inp-maintenance','inp-electricity','inp-internet','inp-parking','inp-food','inp-transport','inp-other','inp-deposit','inp-moving'];
+    for (const id of numericIds) {
+      const el = document.getElementById(id);
+      if (el && el.value.trim() !== '' && isNaN(parseFloat(el.value))) {
+        document.getElementById('results-panel').innerHTML = `
+          <div class="alert alert-error" style="margin-top:1rem">
+            ⚠️ Invalid value in <strong>${el.labels && el.labels[0] ? el.labels[0].textContent : id}</strong>. Please enter numbers only.
+          </div>`;
+        return;
+      }
+    }
+    const salary = v('inp-salary');
+    const rent = parseInt(document.getElementById('inp-rent').value) || 0;
+    const maintenance = v('inp-maintenance');
+    const electricity = v('inp-electricity');
+    const internet = v('inp-internet');
+    const parking = v('inp-parking');
+    const food = v('inp-food');
+    const transport = v('inp-transport');
+    const other = v('inp-other');
+    const deposit = v('inp-deposit') || rent * 2;
+    const moving = v('inp-moving');
+
+    updateRentVal();
+
+    const housingTotal = rent + maintenance;
+    const utilitiesTotal = electricity + internet + parking;
+    const livingTotal = food + transport + other;
+    const monthlyTotal = housingTotal + utilitiesTotal + livingTotal;
+    const savings = salary > 0 ? salary - monthlyTotal : 0;
+    const affordableRent = salary > 0 ? salary * 0.3 : 0;
+    const rentPercent = salary > 0 ? Math.min((rent / salary) * 100, 100) : 0;
+    const totalPercent = salary > 0 ? Math.min((monthlyTotal / salary) * 100, 100) : 0;
+    const oneTime = deposit + moving;
+
+    const rentOk = salary <= 0 || rent <= affordableRent;
+    const rentColor = rentOk ? '#10b981' : '#ef4444';
+
+    document.getElementById('results-panel').innerHTML = `
+      <!-- Summary Cards -->
+      <div class="grid-2" style="margin-bottom:1rem">
+        <div class="result-card">
+          <h3>Monthly Total Expenses</h3>
+          <div class="big-num">${fmt(monthlyTotal)}</div>
+          <div class="sub">${salary > 0 ? Math.round(totalPercent) + '% of your salary' : 'Enter salary for %'}</div>
+        </div>
+        <div class="result-card" style="background:linear-gradient(135deg,${rentOk?'#059669,#10b981':'#dc2626,#ef4444'})">
+          <h3>Rent Affordability</h3>
+          <div class="big-num">${rentOk ? '✅ Affordable' : '⚠️ High'}</div>
+          <div class="sub">Ideal max rent: ${salary > 0 ? fmt(affordableRent) : 'Enter salary'}/mo (30% rule)</div>
+        </div>
+      </div>
+
+      <!-- Monthly Savings -->
+      ${salary > 0 ? `
+      <div style="background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem;margin-bottom:1rem">
+        <div class="flex-between" style="margin-bottom:8px">
+          <span style="font-weight:700">Monthly Savings</span>
+          <span style="font-size:1.2rem;font-weight:900;color:${savings>=0?'var(--success)':'var(--danger)'}">${fmt(Math.abs(savings))} ${savings>=0?'surplus':'deficit'}</span>
+        </div>
+        <div class="affordability-bar-wrap">
+          <div class="affordability-bar" style="width:${totalPercent}%;background:${totalPercent<70?'var(--success)':totalPercent<90?'var(--warning)':'var(--danger)'}"></div>
+        </div>
+        <div class="range-display"><span>₹0</span><span>${fmt(salary)}</span></div>
+      </div>` : ''}
+
+      <!-- Breakdown -->
+      <div class="planner-card" style="margin-bottom:1rem">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:0.8rem">📊 Monthly Cost Breakdown</h3>
+        <div class="breakdown-row"><span class="label">🏠 Rent</span><span class="amount">${fmt(rent)}</span></div>
+        <div class="breakdown-row"><span class="label">🔧 Maintenance</span><span class="amount">${fmt(maintenance)}</span></div>
+        <div class="breakdown-row"><span class="label">⚡ Electricity</span><span class="amount">${fmt(electricity)}</span></div>
+        <div class="breakdown-row"><span class="label">🌐 Internet</span><span class="amount">${fmt(internet)}</span></div>
+        <div class="breakdown-row"><span class="label">🚗 Parking</span><span class="amount">${fmt(parking)}</span></div>
+        <div class="breakdown-row"><span class="label">🛒 Food & Groceries</span><span class="amount">${fmt(food)}</span></div>
+        <div class="breakdown-row"><span class="label">🚌 Transport</span><span class="amount">${fmt(transport)}</span></div>
+        <div class="breakdown-row"><span class="label">💳 Other</span><span class="amount">${fmt(other)}</span></div>
+        <div class="breakdown-row total-row"><span class="label">Total Monthly</span><span class="amount">${fmt(monthlyTotal)}</span></div>
+      </div>
+
+      <!-- One-time costs -->
+      <div class="planner-card" style="margin-bottom:1rem">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:0.8rem">🚚 One-Time Moving Costs</h3>
+        <div class="breakdown-row"><span class="label">🔑 Security Deposit</span><span class="amount">${fmt(deposit)}</span></div>
+        <div class="breakdown-row"><span class="label">📦 Packers & Movers</span><span class="amount">${fmt(moving)}</span></div>
+        <div class="breakdown-row total-row"><span class="label">Total One-Time</span><span class="amount">${fmt(oneTime)}</span></div>
+      </div>
+
+      <!-- Tips -->
+      <div class="planner-card">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:0.8rem">💡 Budget Tips</h3>
+        ${!rentOk && salary > 0 ? `<div class="tip-card" style="border-color:var(--danger);background:#fee2e2;color:#991b1b">⚠️ Your rent exceeds 30% of salary. Consider properties under ${fmt(affordableRent)}/mo.</div>` : ''}
+        <div class="tip-card">📌 The 30/20/50 rule: 50% needs, 30% wants, 20% savings.</div>
+        <div class="tip-card">💡 Negotiate 11-month lease agreements to avoid stamp duty.</div>
+        <div class="tip-card">🔌 Opt for furnished apartments to save on initial setup costs.</div>
+        <div class="tip-card">📦 Book packers & movers at least 2 weeks in advance to get better rates.</div>
+        <a href="search-results.html?purpose=Rent" class="btn btn-primary w-full mt-2">🔍 Find Affordable Properties</a>
+      </div>
+    `;
+  }
+
+  // Init with URL param
+  const urlP = new URLSearchParams(location.search);
+  if (urlP.get('rent')) {
+    const r = parseInt(urlP.get('rent'));
+    document.getElementById('inp-rent').value = r;
+    document.getElementById('inp-deposit').value = r * 2;
+  }
+
+  renderNavUser();
+  updateRentVal();
+  calculate();
+</script>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Dashboard – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .dashboard-layout { display:grid; grid-template-columns:240px 1fr; gap:1.5rem; align-items:start; }
+    @media(max-width:860px){ .dashboard-layout { grid-template-columns:1fr; } }
+    .dash-sidebar { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; position:sticky; top:80px; }
+    .dash-profile { background:linear-gradient(135deg,#1a56db,#0ea5e9); padding:1.5rem; text-align:center; color:white; }
+    .dash-avatar { width:64px;height:64px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900;color:var(--primary);margin:0 auto 0.8rem; }
+    .dash-name { font-weight:700;font-size:1.1rem; }
+    .dash-email { font-size:0.82rem;opacity:0.85;margin-top:2px; }
+    .dash-menu { list-style:none; padding:0.5rem; }
+    .dash-menu li a { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);font-size:0.92rem;color:var(--text);font-weight:500; text-decoration:none; }
+    .dash-menu li a:hover, .dash-menu li a.active { background:var(--primary-light);color:var(--primary); }
+    .dash-panel { display:none; }
+    .dash-panel.active { display:block; }
+    .panel-header { background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem 1.5rem;margin-bottom:1.2rem;display:flex;justify-content:space-between;align-items:center; }
+    .panel-header h2 { font-size:1.1rem;font-weight:700; }
+    .appt-card { background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap; }
+    .appt-info h4 { font-weight:700;font-size:0.95rem;margin-bottom:4px; }
+    .appt-info p { font-size:0.85rem;color:var(--text-muted); }
+    .empty-state { text-align:center;padding:3rem;color:var(--text-muted); }
+    .empty-state .icon { font-size:2.8rem;margin-bottom:0.8rem; }
+    .mini-card { background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem;display:flex;gap:10px;align-items:flex-start;margin-bottom:10px; }
+    .mini-card img { width:80px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0; }
+    .stat-card { background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem;text-align:center; }
+    .stat-card .num { font-size:2rem;font-weight:900;color:var(--primary); }
+    .stat-card .lbl { font-size:0.85rem;color:var(--text-muted);margin-top:4px; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<div class="container" style="padding-top:1.5rem;padding-bottom:3rem">
+  <div class="dashboard-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="dash-sidebar">
+      <div class="dash-profile">
+        <div class="dash-avatar" id="user-avatar">?</div>
+        <div class="dash-name" id="user-name">User</div>
+        <div class="dash-email" id="user-email">user@email.com</div>
+      </div>
+      <ul class="dash-menu">
+        <li><a href="#" id="nav-overview" class="active" onclick="switchPanel('overview',this)">📊 Overview</a></li>
+        <li><a href="#" id="nav-favorites" onclick="switchPanel('favorites',this)">❤️ Saved Properties</a></li>
+        <li><a href="#" id="nav-recent" onclick="switchPanel('recent',this)">🕐 Recently Viewed</a></li>
+        <li><a href="#" id="nav-appointments" onclick="switchPanel('appointments',this)">📅 My Appointments</a></li>
+        <li><a href="#" id="nav-recommendations" onclick="switchPanel('recommendations',this)">✨ Recommendations</a></li>
+        <li><a href="#" id="nav-preferences" onclick="switchPanel('preferences',this)">⚙️ My Preferences</a></li>
+        <li><a href="add-listing.html">🏠 Post Property</a></li>
+        <li><a href="compare.html">⚖️ Compare</a></li>
+        <li><a href="budget-planner.html">💰 Budget Planner</a></li>
+        <li><a href="moving-assistant.html">📦 Moving Assistant</a></li>
+        <li style="border-top:1px solid var(--border);margin-top:0.5rem;padding-top:0.5rem">
+          <a href="#" onclick="Auth.logout()" style="color:var(--danger)">🚪 Logout</a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- MAIN PANELS -->
+    <main>
+
+      <!-- OVERVIEW -->
+      <div class="dash-panel active" id="panel-overview">
+        <div class="panel-header">
+          <h2>👋 Welcome back, <span id="greet-name">User</span>!</h2>
+        </div>
+        <div class="grid-4" style="margin-bottom:1.5rem">
+          <div class="stat-card"><div class="num" id="stat-favs">0</div><div class="lbl">Saved Properties</div></div>
+          <div class="stat-card"><div class="num" id="stat-appts">0</div><div class="lbl">Appointments</div></div>
+          <div class="stat-card"><div class="num" id="stat-recent">0</div><div class="lbl">Recently Viewed</div></div>
+          <div class="stat-card"><div class="num">10</div><div class="lbl">Recommendations</div></div>
+        </div>
+        <div class="panel-header" style="margin-top:1rem">
+          <h2>📅 Upcoming Appointments</h2>
+          <a href="#" onclick="switchPanel('appointments',document.querySelector('.dash-menu a[onclick*=appointments]'))" class="btn btn-sm btn-outline">View All</a>
+        </div>
+        <div id="overview-appts"></div>
+      </div>
+
+      <!-- FAVORITES -->
+      <div class="dash-panel" id="panel-favorites">
+        <div class="panel-header">
+          <h2>❤️ Saved Properties</h2>
+          <a href="search-results.html" class="btn btn-sm btn-primary">Browse More</a>
+        </div>
+        <div id="favs-list"></div>
+      </div>
+
+      <!-- RECENTLY VIEWED -->
+      <div class="dash-panel" id="panel-recent">
+        <div class="panel-header">
+          <h2>🕐 Recently Viewed</h2>
+        </div>
+        <div id="recent-list"></div>
+      </div>
+
+      <!-- APPOINTMENTS -->
+      <div class="dash-panel" id="panel-appointments">
+        <div class="panel-header">
+          <h2>📅 My Appointments</h2>
+        </div>
+        <div id="appts-list"></div>
+      </div>
+
+      <!-- RECOMMENDATIONS -->
+      <div class="dash-panel" id="panel-recommendations">
+        <div class="panel-header">
+          <h2>✨ Recommended for You</h2>
+        </div>
+        <div class="alert alert-info">Based on your saved properties and browsing history, here are top picks for you.</div>
+        <div class="grid-3" id="reco-grid"></div>
+      </div>
+
+      <!-- PREFERENCES (US11: TC51-55) -->
+      <div class="dash-panel" id="panel-preferences">
+        <div class="panel-header">
+          <h2>⚙️ My Preferences & Alerts</h2>
+        </div>
+
+        <!-- Alerts toggle (TC55) -->
+        <div style="background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem 1.5rem;margin-bottom:1.2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+          <div>
+            <div style="font-weight:700;font-size:1rem">🔔 Property Alerts</div>
+            <div style="font-size:0.85rem;color:var(--text-muted)">Get notified when new properties match your preferences</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.9rem;font-weight:600">
+            <span id="alert-status-lbl" style="color:var(--text-muted)">Off</span>
+            <div style="position:relative;width:44px;height:24px">
+              <input type="checkbox" id="alerts-toggle" style="opacity:0;width:0;height:0;position:absolute" onchange="handleAlertToggle(this.checked)"/>
+              <span id="toggle-track" style="position:absolute;inset:0;background:#cbd5e1;border-radius:24px;transition:background 0.2s;cursor:pointer" onclick="document.getElementById('alerts-toggle').click()"></span>
+              <span id="toggle-thumb" style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:white;border-radius:50%;transition:transform 0.2s;pointer-events:none"></span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Preferences form (TC51, TC52, TC54) -->
+        <div style="background:white;border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem">
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:1.2rem;padding-bottom:0.6rem;border-bottom:1.5px solid var(--border)">🎯 Property Preferences</h3>
+          <div id="pref-saved-alert"></div>
+
+          <!-- Natural-language input (TC52) -->
+          <div class="form-group">
+            <label>Describe your ideal home (natural language)</label>
+            <textarea class="form-control" id="pref-nl" rows="3" placeholder="e.g. Looking for a 2BHK fully furnished apartment in Bangalore near metro, budget ₹30,000/mo, pet-friendly"></textarea>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px">Describe in your own words — we'll match properties accordingly.</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+              <label>Preferred City</label>
+              <select class="form-control" id="pref-city">
+                <option value="">Any City</option>
+                <option>Bangalore</option><option>Mumbai</option><option>Hyderabad</option>
+                <option>Chennai</option><option>Delhi</option><option>Noida</option>
+                <option>Pune</option><option>Kolkata</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Purpose</label>
+              <select class="form-control" id="pref-purpose">
+                <option value="">Any</option>
+                <option value="Rent">Rent</option>
+                <option value="Buy">Buy</option>
+                <option value="Lease">Lease</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>BHK</label>
+              <select class="form-control" id="pref-bhk">
+                <option value="">Any</option>
+                <option value="1">1 BHK</option>
+                <option value="2">2 BHK</option>
+                <option value="3">3 BHK</option>
+                <option value="4">4 BHK+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Furnishing</label>
+              <select class="form-control" id="pref-furnish">
+                <option value="">Any</option>
+                <option>Fully Furnished</option>
+                <option>Semi-Furnished</option>
+                <option>Unfurnished</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Max Budget (₹/mo)</label>
+              <input type="number" class="form-control" id="pref-budget" placeholder="e.g. 40000" min="0"/>
+            </div>
+            <div class="form-group">
+              <label>Property Type</label>
+              <select class="form-control" id="pref-type">
+                <option value="">Any</option>
+                <option>Apartment</option><option>Villa</option><option>Independent House</option>
+                <option>Studio</option><option>Builder Floor</option><option>Penthouse</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Must-have Amenities</label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="pref-amenity-row">
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Parking" class="pref-amenity"/> 🚗 Parking</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Pet Friendly" class="pref-amenity"/> 🐾 Pet Friendly</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Power Backup" class="pref-amenity"/> ⚡ Power Backup</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Wi-Fi" class="pref-amenity"/> 🌐 Wi-Fi</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Gym" class="pref-amenity"/> 🏋️ Gym</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Pool" class="pref-amenity"/> 🏊 Pool</label>
+              <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem"><input type="checkbox" value="Gated Community" class="pref-amenity"/> 🏡 Gated</label>
+            </div>
+          </div>
+
+          <button type="button" id="btn-save-preferences" class="btn btn-primary" onclick="savePreferences()">💾 Save Preferences</button>
+          <a href="#" onclick="applyPreferencesToSearch();return false;" class="btn btn-outline" style="margin-left:8px">🔍 Search with These Preferences</a>
+        </div>
+
+        <!-- Personalized recommendations based on preferences (TC53) -->
+        <div style="margin-top:1.5rem">
+          <div style="font-size:1rem;font-weight:700;margin-bottom:1rem">✨ Properties Matching Your Preferences</div>
+          <div id="pref-reco-grid" class="grid-3"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  // Require login
+  if (!Auth.requireLogin()) { /* redirected */ }
+
+  const user = Auth.getCurrentUser();
+
+  function initDashboard() {
+    // Profile
+    document.getElementById('user-avatar').textContent = user.name[0].toUpperCase();
+    document.getElementById('user-name').textContent = user.name;
+    document.getElementById('user-email').textContent = user.email || user.username;
+    document.getElementById('greet-name').textContent = user.name.split(' ')[0];
+
+    // Stats
+    document.getElementById('stat-favs').textContent = (user.favorites || []).length;
+    document.getElementById('stat-appts').textContent = (user.appointments || []).length;
+    document.getElementById('stat-recent').textContent = (user.recentlyViewed || []).length;
+
+    renderFavorites();
+    renderRecent();
+    renderAppointments();
+    renderRecommendations();
+    renderOverviewAppts();
+  }
+
+  function switchPanel(id, link) {
+    document.querySelectorAll('.dash-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-'+id).classList.add('active');
+    document.querySelectorAll('.dash-menu a').forEach(a => a.classList.remove('active'));
+    if (link) link.classList.add('active');
+    return false;
+  }
+
+  function renderMiniCard(p, extra='') {
+    return `
+      <div class="mini-card">
+        <img src="${p.images[0]}" alt="${p.title}" onerror="this.src='https://via.placeholder.com/80x60'"/>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.92rem">${p.title}</div>
+          <div style="font-size:0.82rem;color:var(--text-muted)">📍 ${p.location}</div>
+          <div style="font-weight:800;color:var(--primary);margin-top:2px">${p.priceLabel}</div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <span style="font-size:0.8rem">🛏 ${p.bhk} BHK</span>
+            <span style="font-size:0.8rem">📐 ${p.area} sqft</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <a href="property-detail.html?id=${p.id}" class="btn btn-sm btn-primary">View</a>
+          ${extra}
+        </div>
+      </div>`;
+  }
+
+  function renderFavorites() {
+    const favs = user.favorites || [];
+    const el = document.getElementById('favs-list');
+    if (!favs.length) { el.innerHTML = `<div class="empty-state"><div class="icon">💔</div><p>No saved properties yet.</p><a href="search-results.html" class="btn btn-primary mt-2">Browse Properties</a></div>`; return; }
+    el.innerHTML = favs.map(id => {
+      const p = getPropertyById(id);
+      if (!p) return '';
+      const extra = `<button type="button" id="btn-remove-fav-${p.id}" class="btn btn-sm btn-danger" onclick="removeFav(${p.id})">Remove</button>`;
+      return renderMiniCard(p, extra);
+    }).join('');
+  }
+
+  function removeFav(id) {
+    Auth.toggleFavorite(id);
+    const updatedUser = Auth.getCurrentUser();
+    user.favorites = updatedUser.favorites;
+    document.getElementById('stat-favs').textContent = user.favorites.length;
+    renderFavorites();
+    showToast('Removed from favorites');
+  }
+
+  function renderRecent() {
+    const rv = user.recentlyViewed || [];
+    const el = document.getElementById('recent-list');
+    if (!rv.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🕐</div><p>No recently viewed properties.</p></div>`; return; }
+    el.innerHTML = rv.map(id => { const p = getPropertyById(id); return p ? renderMiniCard(p) : ''; }).join('');
+  }
+
+  function renderAppointments() {
+    const appts = user.appointments || [];
+    const el = document.getElementById('appts-list');
+    if (!appts.length) { el.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>No appointments scheduled yet.</p><a href="search-results.html" class="btn btn-primary mt-2">Find Properties</a></div>`; return; }
+    el.innerHTML = appts.map(a => `
+      <div class="appt-card">
+        <div class="appt-info">
+          <h4>🏠 ${a.propTitle}</h4>
+          <p>📅 ${new Date(a.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})} &nbsp; ⏰ ${a.time}</p>
+          <p>👤 ${a.name} &nbsp; 📞 ${a.phone}</p>
+          <p>🤝 Owner: ${a.ownerName}</p>
+        </div>
+        <div>
+          <span class="badge badge-success" style="margin-bottom:8px;display:block">Confirmed</span>
+          <button type="button" id="btn-cancel-appt-${a.id}" class="btn btn-sm btn-danger" onclick="cancelAppt(${a.id})">Cancel</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function cancelAppt(id) {
+    if (!confirm('Cancel this appointment?')) return;
+    Auth.cancelAppointment(id);
+    const updated = Auth.getCurrentUser();
+    user.appointments = updated.appointments;
+    document.getElementById('stat-appts').textContent = user.appointments.length;
+    renderAppointments();
+    renderOverviewAppts();
+    showToast('Appointment cancelled');
+  }
+
+  function renderOverviewAppts() {
+    const appts = (user.appointments || []).slice(0, 2);
+    const el = document.getElementById('overview-appts');
+    if (!appts.length) { el.innerHTML = `<div class="empty-state" style="padding:1.5rem"><div class="icon">📅</div><p>No upcoming appointments.</p></div>`; return; }
+    el.innerHTML = appts.map(a => `
+      <div class="appt-card">
+        <div class="appt-info">
+          <h4>🏠 ${a.propTitle}</h4>
+          <p>📅 ${new Date(a.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})} &nbsp; ⏰ ${a.time}</p>
+        </div>
+        <span class="badge badge-success">Confirmed</span>
+      </div>`).join('');
+  }
+
+  function renderRecommendations() {
+    const grid = document.getElementById('reco-grid');
+    // Recommend based on favorites or just show top-rated
+    const favs = user.favorites || [];
+    let reco = PROPERTIES.filter(p => !favs.includes(p.id)).sort((a,b) => b.rating - a.rating).slice(0,6);
+    grid.innerHTML = reco.map(p => `
+      <div class="card" style="position:relative">
+        <img src="${p.images[0]}" alt="${p.title}" class="card-img" onerror="this.src='https://via.placeholder.com/400x200'"/>
+        <div class="card-body">
+          <div class="card-title">${p.title}</div>
+          <div class="card-subtitle">📍 ${p.location}</div>
+          <div class="card-price">${p.priceLabel}</div>
+          <div class="prop-icons">
+            <span class="prop-icon">🛏 ${p.bhk} BHK</span>
+            <span class="prop-icon">⭐ ${p.rating}</span>
+          </div>
+          <a href="property-detail.html?id=${p.id}" class="btn btn-primary w-full mt-2">View</a>
+        </div>
+      </div>`).join('');
+  }
+
+  // ---- US11 Preferences ----
+  function loadPreferencesPanel() {
+    const prefs = Auth.getPreferences();
+    if (prefs) {
+      if (prefs.nl)      document.getElementById('pref-nl').value = prefs.nl;
+      if (prefs.city)    document.getElementById('pref-city').value = prefs.city;
+      if (prefs.purpose) document.getElementById('pref-purpose').value = prefs.purpose;
+      if (prefs.bhk)     document.getElementById('pref-bhk').value = prefs.bhk;
+      if (prefs.furnish) document.getElementById('pref-furnish').value = prefs.furnish;
+      if (prefs.budget)  document.getElementById('pref-budget').value = prefs.budget;
+      if (prefs.type)    document.getElementById('pref-type').value = prefs.type;
+      if (prefs.amenities) {
+        document.querySelectorAll('.pref-amenity').forEach(chk => {
+          chk.checked = prefs.amenities.includes(chk.value);
+        });
+      }
+    }
+    const alertsOn = Auth.isAlertsEnabled();
+    document.getElementById('alerts-toggle').checked = alertsOn;
+    setToggleVisual(alertsOn);
+    renderPrefRecommendations();
+  }
+
+  function setToggleVisual(on) {
+    const track = document.getElementById('toggle-track');
+    const thumb = document.getElementById('toggle-thumb');
+    const lbl   = document.getElementById('alert-status-lbl');
+    if (on) {
+      track.style.background = 'var(--primary)';
+      thumb.style.transform  = 'translateX(20px)';
+      lbl.textContent = 'On';
+      lbl.style.color = 'var(--primary)';
+    } else {
+      track.style.background = '#cbd5e1';
+      thumb.style.transform  = 'translateX(0)';
+      lbl.textContent = 'Off';
+      lbl.style.color = 'var(--text-muted)';
+    }
+  }
+
+  function handleAlertToggle(on) {
+    Auth.toggleAlerts(on);
+    setToggleVisual(on);
+    showToast(on ? '🔔 Alerts enabled! You\'ll be notified of new matches.' : '🔕 Alerts disabled.', on ? 'success' : '');
+  }
+
+  function savePreferences() {
+    const amenities = [...document.querySelectorAll('.pref-amenity:checked')].map(c => c.value);
+    const prefs = {
+      nl:       document.getElementById('pref-nl').value.trim(),
+      city:     document.getElementById('pref-city').value,
+      purpose:  document.getElementById('pref-purpose').value,
+      bhk:      document.getElementById('pref-bhk').value,
+      furnish:  document.getElementById('pref-furnish').value,
+      budget:   document.getElementById('pref-budget').value,
+      type:     document.getElementById('pref-type').value,
+      amenities
+    };
+    Auth.savePreferences(prefs);
+    document.getElementById('pref-saved-alert').innerHTML = '<div class="alert alert-success">✅ Preferences saved successfully!</div>';
+    setTimeout(() => { document.getElementById('pref-saved-alert').innerHTML = ''; }, 3000);
+    renderPrefRecommendations();
+  }
+
+  function applyPreferencesToSearch() {
+    const prefs = Auth.getPreferences();
+    if (!prefs) { showToast('Please save your preferences first', 'error'); return; }
+    const p = new URLSearchParams();
+    if (prefs.city)    p.set('loc', prefs.city);
+    if (prefs.purpose) p.set('purpose', prefs.purpose);
+    if (prefs.type)    p.set('type', prefs.type);
+    if (prefs.bhk)     p.set('bhk', prefs.bhk);
+    window.location.href = 'search-results.html?' + p.toString();
+  }
+
+  function renderPrefRecommendations() {
+    const prefs  = Auth.getPreferences();
+    const grid   = document.getElementById('pref-reco-grid');
+    if (!grid) return;
+    let results = [...PROPERTIES];
+    if (prefs) {
+      if (prefs.city)    results = results.filter(p => p.city.toLowerCase() === prefs.city.toLowerCase());
+      if (prefs.purpose) results = results.filter(p => p.purpose === prefs.purpose);
+      if (prefs.bhk)     results = results.filter(p => String(p.bhk) === prefs.bhk || (prefs.bhk === '4' && p.bhk >= 4));
+      if (prefs.furnish) results = results.filter(p => p.furnishing === prefs.furnish);
+      if (prefs.budget)  results = results.filter(p => p.price <= parseFloat(prefs.budget));
+      if (prefs.type)    results = results.filter(p => p.type === prefs.type);
+    }
+    if (!results.length) results = PROPERTIES.slice().sort((a,b) => b.rating - a.rating).slice(0,3);
+    results = results.slice(0, 6);
+    grid.innerHTML = results.map(p => `
+      <div class="card">
+        <img src="${p.images[0]}" class="card-img" onerror="this.src='https://via.placeholder.com/400x200'"/>
+        <div class="card-body">
+          <div class="card-title">${p.title}</div>
+          <div class="card-subtitle">📍 ${p.location}</div>
+          <div class="card-price">${p.priceLabel}</div>
+          <div class="prop-icons">
+            <span class="prop-icon">🛏 ${p.bhk} BHK</span>
+            <span class="prop-icon">⭐ ${p.rating}</span>
+            ${p.verified ? '<span class="badge badge-verified" style="font-size:0.72rem">✓</span>' : ''}
+          </div>
+          <a href="property-detail.html?id=${p.id}" class="btn btn-primary w-full mt-2">View</a>
+        </div>
+      </div>`).join('');
+  }
+
+  renderNavUser();
+  initDashboard();
+  loadPreferencesPanel();
+</script>
+</body>
+</html>

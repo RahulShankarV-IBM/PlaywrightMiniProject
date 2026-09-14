@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Post Property – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .listing-layout { display:grid; grid-template-columns:1fr 320px; gap:1.5rem; align-items:start; }
+    @media(max-width:900px){ .listing-layout { grid-template-columns:1fr; } }
+    .form-card { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.2rem; }
+    .form-card h3 { font-size:1rem; font-weight:700; margin-bottom:1.2rem; padding-bottom:0.6rem; border-bottom:1.5px solid var(--border); color:var(--text); display:flex; align-items:center; gap:8px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media(max-width:600px){ .form-row { grid-template-columns:1fr; } }
+    .amenity-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    @media(max-width:600px){ .amenity-grid { grid-template-columns:repeat(2,1fr); } }
+    .amenity-check { padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer; transition:all 0.15s; }
+    .amenity-check.checked { background:var(--primary-light); border-color:var(--primary); color:var(--primary); font-weight:600; }
+    .amenity-check input { accent-color:var(--primary); }
+    .photo-upload { border:2px dashed var(--border); border-radius:var(--radius-lg); padding:2rem; text-align:center; cursor:pointer; transition:all 0.15s; background:var(--bg); }
+    .photo-upload:hover { border-color:var(--primary); background:var(--primary-light); }
+    .photo-preview { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .photo-thumb { width:80px; height:60px; object-fit:cover; border-radius:8px; }
+    .preview-sidebar { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.2rem; position:sticky; top:80px; }
+    .preview-sidebar h3 { font-size:0.95rem; font-weight:700; margin-bottom:1rem; }
+    .preview-img { width:100%; height:160px; object-fit:cover; border-radius:var(--radius-lg); background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:2rem; color:var(--text-light); margin-bottom:0.8rem; }
+    .step-indicator { display:flex; gap:6px; margin-bottom:1.5rem; }
+    .step { flex:1; text-align:center; padding:8px 4px; border-radius:8px; font-size:0.8rem; font-weight:600; background:var(--bg); color:var(--text-muted); border:2px solid var(--border); }
+    .step.active { background:var(--primary); color:white; border-color:var(--primary); }
+    .step.done { background:var(--success); color:white; border-color:var(--success); }
+    .char-count { font-size:0.78rem; color:var(--text-muted); text-align:right; margin-top:3px; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html" class="active">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<!-- HERO -->
+<div style="background:linear-gradient(135deg,#1a56db,#0ea5e9);color:white;padding:2.5rem 2rem;text-align:center">
+  <div class="container">
+    <h1 style="font-size:2rem;font-weight:900;margin-bottom:0.5rem">🏠 Post Your Property</h1>
+    <p style="opacity:0.9">List your property and reach thousands of verified buyers and renters across India.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem;padding-bottom:3rem">
+  <div id="listing-alert"></div>
+
+  <!-- Step Indicator -->
+  <div class="step-indicator">
+    <div class="step active" id="step-1">1 Basic Info</div>
+    <div class="step" id="step-2">2 Details</div>
+    <div class="step" id="step-3">3 Amenities</div>
+    <div class="step" id="step-4">4 Media</div>
+    <div class="step" id="step-5">5 Review</div>
+  </div>
+
+  <div class="listing-layout">
+    <!-- FORM -->
+    <form id="listing-form" onsubmit="submitListing(event)">
+
+      <!-- STEP 1: Basic Info -->
+      <div id="section-1" class="form-card">
+        <h3>📋 Basic Information</h3>
+        <div class="form-group">
+          <label>Property Title *</label>
+          <input type="text" class="form-control" id="f-title" placeholder="e.g. Spacious 3BHK Apartment in Koramangala" required oninput="updatePreview()"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Property For *</label>
+            <select class="form-control" id="f-purpose" required onchange="updatePreview()">
+              <option value="">Select</option>
+              <option value="Rent">Rent</option>
+              <option value="Buy">Buy / Sale</option>
+              <option value="Lease">Lease</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Property Type *</label>
+            <select class="form-control" id="f-type" required>
+              <option value="">Select</option>
+              <option>Apartment</option>
+              <option>Villa</option>
+              <option>Independent House</option>
+              <option>Studio</option>
+              <option>Builder Floor</option>
+              <option>Penthouse</option>
+              <option>Plot</option>
+              <option>Commercial</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price (₹) *</label>
+            <input type="number" class="form-control" id="f-price" placeholder="e.g. 25000" required min="0" oninput="updatePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>BHK *</label>
+            <select class="form-control" id="f-bhk" required>
+              <option value="">Select</option>
+              <option value="1">1 BHK</option>
+              <option value="2">2 BHK</option>
+              <option value="3">3 BHK</option>
+              <option value="4">4 BHK</option>
+              <option value="5">5 BHK+</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Location & Details -->
+      <div id="section-2" class="form-card">
+        <h3>📍 Location & Property Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>City *</label>
+            <select class="form-control" id="f-city" required onchange="updatePreview()">
+              <option value="">Select City</option>
+              <option>Bangalore</option>
+              <option>Mumbai</option>
+              <option>Hyderabad</option>
+              <option>Chennai</option>
+              <option>Delhi</option>
+              <option>Noida</option>
+              <option>Pune</option>
+              <option>Kolkata</option>
+              <option>Ahmedabad</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Locality / Area *</label>
+            <input type="text" class="form-control" id="f-locality" placeholder="e.g. Koramangala, HSR Layout" required/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pincode *</label>
+            <input type="text" class="form-control" id="f-pincode" placeholder="6-digit pincode" maxlength="6" pattern="[0-9]{6}" required/>
+          </div>
+          <div class="form-group">
+            <label>Area (sq.ft) *</label>
+            <input type="number" class="form-control" id="f-area" placeholder="e.g. 1200" required min="100"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Floor</label>
+            <input type="text" class="form-control" id="f-floor" placeholder="e.g. 3rd of 10"/>
+          </div>
+          <div class="form-group">
+            <label>Balcony</label>
+            <select class="form-control" id="f-balcony">
+              <option value="0">No Balcony</option>
+              <option value="1">1 Balcony</option>
+              <option value="2">2 Balconies</option>
+              <option value="3">3+ Balconies</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Furnishing Status *</label>
+            <select class="form-control" id="f-furnish" required>
+              <option value="">Select</option>
+              <option>Fully Furnished</option>
+              <option>Semi-Furnished</option>
+              <option>Unfurnished</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Available From *</label>
+            <input type="date" class="form-control" id="f-available" required/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Water Supply</label>
+            <select class="form-control" id="f-water">
+              <option>24/7</option>
+              <option>Municipal</option>
+              <option>Borewell</option>
+              <option>Borewell + Municipal</option>
+              <option>Tanker</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Property Description</label>
+          <textarea class="form-control" id="f-desc" rows="4" maxlength="500" placeholder="Describe key features, surroundings, transport access, etc..." oninput="document.getElementById('desc-count').textContent=this.value.length+'/500'"></textarea>
+          <div class="char-count" id="desc-count">0/500</div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Amenities & Rules -->
+      <div id="section-3" class="form-card">
+        <h3>✨ Amenities & Features</h3>
+        <div class="amenity-grid">
+          <label class="amenity-check"><input type="checkbox" id="a-gym"/> 🏋️ Gym</label>
+          <label class="amenity-check"><input type="checkbox" id="a-pool"/> 🏊 Swimming Pool</label>
+          <label class="amenity-check"><input type="checkbox" id="a-lift"/> 🛗 Lift</label>
+          <label class="amenity-check"><input type="checkbox" id="a-security"/> 🔐 Security</label>
+          <label class="amenity-check"><input type="checkbox" id="a-wifi"/> 🌐 Wi-Fi Ready</label>
+          <label class="amenity-check"><input type="checkbox" id="a-parking"/> 🚗 Parking</label>
+          <label class="amenity-check"><input type="checkbox" id="a-pet"/> 🐾 Pet Friendly</label>
+          <label class="amenity-check"><input type="checkbox" id="a-power"/> ⚡ Power Backup</label>
+          <label class="amenity-check"><input type="checkbox" id="a-cctv"/> 📹 CCTV</label>
+          <label class="amenity-check"><input type="checkbox" id="a-gated"/> 🏡 Gated Community</label>
+          <label class="amenity-check"><input type="checkbox" id="a-garden"/> 🌿 Garden</label>
+          <label class="amenity-check"><input type="checkbox" id="a-club"/> 🎯 Club House</label>
+          <label class="amenity-check"><input type="checkbox" id="a-play"/> 🛝 Play Area</label>
+          <label class="amenity-check"><input type="checkbox" id="a-park"/> 🌳 Park</label>
+          <label class="amenity-check"><input type="checkbox" id="a-intercom"/> 📞 Intercom</label>
+        </div>
+
+        <h3 style="margin-top:1.2rem">📋 Rules & Additional Info</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Preferred Tenant</label>
+            <select class="form-control" id="f-tenant">
+              <option>Any</option>
+              <option>Family Only</option>
+              <option>Bachelors (Male)</option>
+              <option>Bachelors (Female)</option>
+              <option>Working Professionals</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Notice Period</label>
+            <select class="form-control" id="f-notice">
+              <option>1 Month</option>
+              <option>2 Months</option>
+              <option>3 Months</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: Media -->
+      <div id="section-4" class="form-card">
+        <h3>📸 Photos & Media</h3>
+        <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+          <div style="font-size:2.5rem">📷</div>
+          <div style="font-weight:600;margin-top:8px">Click to upload photos</div>
+          <div style="font-size:0.82rem;color:var(--text-muted)">JPG, PNG – up to 5 photos (max 5MB each)</div>
+          <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="previewPhotos(this)"/>
+        </div>
+        <div class="photo-preview" id="photo-preview"></div>
+        <div class="form-group" style="margin-top:1rem">
+          <label>Video Tour URL (Optional)</label>
+          <input type="url" class="form-control" id="f-video" placeholder="YouTube or Google Drive link"/>
+        </div>
+      </div>
+
+      <!-- STEP 5: Owner Info -->
+      <div id="section-5" class="form-card">
+        <h3>👤 Owner / Agent Information</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Your Name *</label>
+            <input type="text" class="form-control" id="f-owner-name" placeholder="Full name" required/>
+          </div>
+          <div class="form-group">
+            <label>You are a *</label>
+            <select class="form-control" id="f-owner-type" required>
+              <option value="">Select</option>
+              <option value="Owner">Owner</option>
+              <option value="Agent">Agent / Broker</option>
+              <option value="Builder">Builder</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phone *</label>
+            <input type="tel" class="form-control" id="f-owner-phone" placeholder="10-digit mobile number" required maxlength="10" pattern="[0-9]{10}"/>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" class="form-control" id="f-owner-email" placeholder="email@example.com"/>
+          </div>
+        </div>
+        <label class="form-check">
+          <input type="checkbox" id="f-terms" required/>
+          <span style="font-size:0.88rem">I confirm the information provided is accurate and I agree to <a href="#">PropFind's listing terms</a>.</span>
+        </label>
+      </div>
+
+      <button type="submit" id="btn-submit-listing" class="btn btn-primary w-full btn-lg">🚀 Submit Listing</button>
+    </form>
+
+    <!-- PREVIEW SIDEBAR -->
+    <div class="preview-sidebar">
+      <h3>👁 Live Preview</h3>
+      <div class="preview-img" id="preview-img">📷</div>
+      <div id="preview-title" style="font-weight:800;font-size:1rem;margin-bottom:4px">Your property title</div>
+      <div id="preview-location" style="font-size:0.85rem;color:var(--text-muted)">📍 City, Locality</div>
+      <div id="preview-price" style="font-size:1.3rem;font-weight:900;color:var(--primary);margin:8px 0">₹ --</div>
+      <div id="preview-meta" style="font-size:0.83rem;color:var(--text-muted)">— BHK &nbsp; | &nbsp; --</div>
+      <hr class="divider"/>
+      <div style="font-size:0.82rem;color:var(--text-muted)">
+        <p>✅ Free listing for 30 days</p>
+        <p style="margin-top:6px">✅ Reach 10,000+ verified seekers</p>
+        <p style="margin-top:6px">✅ Listing goes live within 2 hours</p>
+        <p style="margin-top:6px">✅ Edit anytime from dashboard</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="success-modal">
+  <div class="modal" style="text-align:center">
+    <div style="font-size:4rem;margin-bottom:1rem">🎉</div>
+    <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:0.5rem">Listing Submitted!</h2>
+    <p style="color:var(--text-muted);margin-bottom:1.5rem">Your property listing has been submitted for review. It will go live within 2 hours after verification.</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <a href="dashboard.html" class="btn btn-primary">Go to Dashboard</a>
+      <a href="index.html" class="btn btn-outline">Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  // Pre-fill if logged in
+  const user = Auth.getCurrentUser();
+  if (user) {
+    document.getElementById('f-owner-name').value = user.name || '';
+    document.getElementById('f-owner-email').value = user.email || '';
+  }
+
+  // Set min date for available
+  document.getElementById('f-available').min = new Date().toISOString().split('T')[0];
+
+  function updatePreview() {
+    const title = document.getElementById('f-title').value || 'Your property title';
+    const city = document.getElementById('f-city').value;
+    const locality = document.getElementById('f-locality') ? document.getElementById('f-locality').value : '';
+    const price = document.getElementById('f-price').value;
+    const bhk = document.getElementById('f-bhk').value;
+    const purpose = document.getElementById('f-purpose').value;
+
+    document.getElementById('preview-title').textContent = title;
+    document.getElementById('preview-location').textContent = `📍 ${[locality,city].filter(Boolean).join(', ') || 'City, Locality'}`;
+    document.getElementById('preview-price').textContent = price ? `₹${parseInt(price).toLocaleString('en-IN')}${purpose==='Rent'||purpose==='Lease'?'/mo':''}` : '₹ --';
+    document.getElementById('preview-meta').textContent = `${bhk ? bhk+' BHK' : '-- BHK'} | ${purpose || '--'}`;
+  }
+
+  function previewPhotos(input) {
+    const preview = document.getElementById('photo-preview');
+    preview.innerHTML = '';
+    [...input.files].slice(0,5).forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.createElement('img');
+        img.src = e.target.result; img.className = 'photo-thumb';
+        preview.appendChild(img);
+        if (i === 0) {
+          document.getElementById('preview-img').innerHTML = `<img src="${e.target.result}" style="width:100%;height:160px;object-fit:cover;border-radius:var(--radius-lg)"/>`;
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function submitListing(e) {
+    e.preventDefault();
+    const alertEl = document.getElementById('listing-alert');
+    // TC62: At least one photo required
+    const photoInput = document.getElementById('photo-input');
+    if (!photoInput.files || photoInput.files.length === 0) {
+      alertEl.innerHTML = '<div class="alert alert-error">Please upload at least one property photo.</div>';
+      window.scrollTo(0,0);
+      return;
+    }
+    const phone = document.getElementById('f-owner-phone').value.trim();
+    if (!/^\d{10}$/.test(phone)) {
+      alertEl.innerHTML = '<div class="alert alert-error">Please enter a valid 10-digit phone number.</div>';
+      window.scrollTo(0,0);
+      return;
+    }
+    document.getElementById('listing-alert').innerHTML = '';
+    document.getElementById('success-modal').classList.add('open');
+  }
+
+  // Update step indicators on scroll
+  function updateSteps() {
+    const sections = ['section-1','section-2','section-3','section-4','section-5'];
+    sections.forEach((id, i) => {
+      const el = document.getElementById(id);
+      const rect = el.getBoundingClientRect();
+      const step = document.getElementById('step-'+(i+1));
+      if (rect.top < window.innerHeight * 0.5) {
+        step.classList.add('done');
+        step.classList.remove('active');
+      } else if (rect.top < window.innerHeight * 0.8) {
+        step.classList.add('active');
+        step.classList.remove('done');
+      }
+    });
+  }
+  window.addEventListener('scroll', updateSteps);
+
+  // Amenity checkbox toggle (cross-browser safe, no :has() needed)
+  document.querySelectorAll('.amenity-check input[type="checkbox"]').forEach(chk => {
+    chk.addEventListener('change', function() {
+      this.closest('.amenity-check').classList.toggle('checked', this.checked);
+    });
+  });
+
+  renderNavUser();
+  updatePreview();
+</script>
+</body>
+</html>

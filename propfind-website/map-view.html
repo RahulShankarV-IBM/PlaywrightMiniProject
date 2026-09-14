@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Map View – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body { overflow:hidden; }
+    .map-layout { display:grid; grid-template-columns:360px 1fr; height:calc(100vh - var(--nav-height)); }
+    @media(max-width:860px){ .map-layout { grid-template-columns:1fr; height:auto; } }
+    .map-panel { overflow-y:auto; background:white; border-right:1.5px solid var(--border); }
+    .map-search { padding:1rem; border-bottom:1.5px solid var(--border); background:var(--primary-light); }
+    .prop-list-item { padding:1rem; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; }
+    .prop-list-item:hover, .prop-list-item.active { background:var(--primary-light); }
+    .prop-list-img { width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:8px; }
+    #map { height:calc(100vh - var(--nav-height)); min-height:400px; }
+    @media(max-width:860px){ #map { height:50vh; } }
+    .map-toggle { display:flex; gap:6px; margin-bottom:10px; }
+    .overlay-btn { padding:5px 12px; border:1.5px solid var(--border); border-radius:20px; font-size:0.8rem; background:white; cursor:pointer; font-weight:600; transition:all 0.15s; }
+    .overlay-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+    .popup-img { width:100%;height:100px;object-fit:cover;border-radius:6px;margin-bottom:6px; }
+    .legend { position:absolute; bottom:20px; left:380px; background:white; border:1.5px solid var(--border); border-radius:var(--radius); padding:10px 14px; z-index:1000; font-size:0.8rem; box-shadow:var(--shadow); }
+    @media(max-width:860px){ .legend { left:10px; bottom:10px; } }
+    .legend-item { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+    .legend-dot { width:12px;height:12px;border-radius:50%; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html" class="active">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<div class="map-layout">
+  <!-- LEFT PANEL -->
+  <div class="map-panel">
+    <div class="map-search">
+      <div class="form-group" style="margin-bottom:8px">
+        <input type="text" class="form-control" id="map-search-input" placeholder="🔍 Search city or location..." oninput="filterMapList()"/>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select class="form-control" style="flex:1;font-size:0.85rem" id="map-purpose" onchange="filterMapList()">
+          <option value="">All</option>
+          <option value="Rent">Rent</option>
+          <option value="Buy">Buy</option>
+          <option value="Lease">Lease</option>
+        </select>
+        <select class="form-control" style="flex:1;font-size:0.85rem" id="map-bhk" onchange="filterMapList()">
+          <option value="">Any BHK</option>
+          <option value="1">1 BHK</option>
+          <option value="2">2 BHK</option>
+          <option value="3">3 BHK</option>
+          <option value="4">4 BHK+</option>
+        </select>
+      </div>
+      <div class="map-toggle" style="margin-top:8px">
+        <button type="button" class="overlay-btn active" id="btn-props" onclick="toggleOverlay('props',this)">🏠 Properties</button>
+        <button type="button" class="overlay-btn" id="btn-schools" onclick="toggleOverlay('schools',this)">🏫 Schools</button>
+        <button type="button" class="overlay-btn" id="btn-hospitals" onclick="toggleOverlay('hospitals',this)">🏥 Hospitals</button>
+        <button type="button" class="overlay-btn" id="btn-metro" onclick="toggleOverlay('metro',this)">🚇 Metro</button>
+      </div>
+      <div style="font-size:0.82rem;color:var(--text-muted)" id="map-count">Showing 10 properties</div>
+    </div>
+    <div id="map-prop-list"></div>
+  </div>
+
+  <!-- MAP -->
+  <div style="position:relative">
+    <div id="map"></div>
+    <div class="legend">
+      <strong style="font-size:0.82rem">Legend</strong>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a56db"></div>Rent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Buy</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Lease</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/properties.js"></script>
+<script>
+  // Init Map centered on India
+  const map = L.map('map').setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom: 18
+  }).addTo(map);
+
+  const purposeColors = { Rent: '#1a56db', Buy: '#10b981', Lease: '#f59e0b' };
+  let propMarkers = [];
+  let activeOverlays = { props: true, schools: false, hospitals: false, metro: false };
+  let filteredProps = [...PROPERTIES];
+
+  // Nearby facility markers (sample)
+  const facilityMarkers = {
+    schools: [
+      [12.9352, 77.6245], [12.9784, 77.6408], [17.4126, 78.4483]
+    ].map(pos => L.marker(pos, { icon: L.divIcon({ html: '🏫', className: '', iconSize: [24,24] }) }).bindPopup('<b>School</b>')),
+    hospitals: [
+      [12.9352, 77.6250], [17.4130, 78.4490], [19.1335, 72.8145]
+    ].map(pos => L.marker(pos, { icon: L.divIcon({ html: '🏥', className: '', iconSize: [24,24] }) }).bindPopup('<b>Hospital</b>')),
+    metro: [
+      [12.9355, 77.6240], [12.9784, 77.6400], [19.1868, 72.8490]
+    ].map(pos => L.marker(pos, { icon: L.divIcon({ html: '🚇', className: '', iconSize: [24,24] }) }).bindPopup('<b>Metro Station</b>'))
+  };
+
+  function createPropertyMarker(p) {
+    const color = purposeColors[p.purpose] || '#1a56db';
+    const icon = L.divIcon({
+      html: `<div style="background:${color};color:white;padding:4px 8px;border-radius:20px;font-size:0.75rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25)">${p.priceLabel}</div>`,
+      className: '', iconAnchor: [40, 16]
+    });
+    const marker = L.marker([p.lat, p.lng], { icon });
+    marker.bindPopup(`
+      <div style="width:220px;font-family:system-ui,sans-serif">
+        <img src="${p.images[0]}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:6px" onerror="this.style.display='none'"/>
+        <div style="font-weight:700;font-size:0.92rem">${p.title}</div>
+        <div style="font-size:0.8rem;color:#64748b">📍 ${p.location}</div>
+        <div style="font-weight:900;color:${color};font-size:1rem;margin:4px 0">${p.priceLabel}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-bottom:8px">🛏 ${p.bhk} BHK &nbsp; 📐 ${p.area} sqft</div>
+        <a href="property-detail.html?id=${p.id}" style="background:${color};color:white;padding:6px 14px;border-radius:6px;font-size:0.82rem;font-weight:600;text-decoration:none;display:block;text-align:center">View Details →</a>
+      </div>
+    `, { maxWidth: 240 });
+    marker.on('click', () => highlightListItem(p.id));
+    return marker;
+  }
+
+  function renderMapMarkers() {
+    propMarkers.forEach(m => map.removeLayer(m));
+    propMarkers = [];
+    if (!activeOverlays.props) return;
+    filteredProps.forEach(p => {
+      const m = createPropertyMarker(p);
+      m.addTo(map);
+      propMarkers.push(m);
+    });
+  }
+
+  function toggleOverlay(type, btn) {
+    if (type === 'props') {
+      activeOverlays.props = !activeOverlays.props;
+      btn.classList.toggle('active', activeOverlays.props);
+      renderMapMarkers();
+    } else {
+      activeOverlays[type] = !activeOverlays[type];
+      btn.classList.toggle('active', activeOverlays[type]);
+      facilityMarkers[type].forEach(m => {
+        if (activeOverlays[type]) m.addTo(map); else map.removeLayer(m);
+      });
+    }
+  }
+
+  function renderMapList() {
+    const list = document.getElementById('map-prop-list');
+    document.getElementById('map-count').textContent = `Showing ${filteredProps.length} properties`;
+    list.innerHTML = filteredProps.map(p => `
+      <div class="prop-list-item" id="list-${p.id}" onclick="focusProp(${p.id})">
+        <img src="${p.images[0]}" class="prop-list-img" alt="${p.title}" onerror="this.style.display='none'"/>
+        <div style="font-weight:700;font-size:0.92rem">${p.title}</div>
+        <div style="font-size:0.8rem;color:var(--text-muted)">📍 ${p.location}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <span style="font-weight:800;color:var(--primary)">${p.priceLabel}</span>
+          <span style="font-size:0.8rem;color:var(--text-muted)">🛏 ${p.bhk} BHK</span>
+        </div>
+        ${p.verified ? '<span class="badge badge-verified" style="margin-top:4px;font-size:0.72rem">✓ Verified</span>' : ''}
+      </div>
+    `).join('');
+  }
+
+  function focusProp(id) {
+    const p = getPropertyById(id);
+    if (!p) return;
+    map.setView([p.lat, p.lng], 14);
+    const marker = propMarkers.find((m,i) => filteredProps[i] && filteredProps[i].id === id);
+    if (marker) marker.openPopup();
+    highlightListItem(id);
+  }
+
+  function highlightListItem(id) {
+    document.querySelectorAll('.prop-list-item').forEach(el => el.classList.remove('active'));
+    const el = document.getElementById('list-'+id);
+    if (el) { el.classList.add('active'); el.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  }
+
+  function filterMapList() {
+    const q = document.getElementById('map-search-input').value.toLowerCase().trim();
+    const purpose = document.getElementById('map-purpose').value;
+    const bhk = document.getElementById('map-bhk').value;
+    filteredProps = PROPERTIES.filter(p => {
+      if (q && !p.location.toLowerCase().includes(q) && !p.city.toLowerCase().includes(q) && !p.pincode.includes(q)) return false;
+      if (purpose && p.purpose !== purpose) return false;
+      if (bhk && String(bhk === '4' ? (p.bhk >= 4 ? 4 : p.bhk) : p.bhk) !== bhk) return false;
+      return true;
+    });
+    renderMapList();
+    renderMapMarkers();
+  }
+
+  renderNavUser();
+  renderMapList();
+  renderMapMarkers();
+</script>
+</body>
+</html>

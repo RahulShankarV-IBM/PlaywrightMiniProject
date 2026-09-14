@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compare Properties – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .compare-table th { background:var(--primary); color:white; font-size:0.88rem; padding:12px 14px; min-width:200px; }
+    .compare-table td { padding:12px 14px; font-size:0.88rem; border-bottom:1px solid var(--border); vertical-align:top; }
+    .compare-table tr:nth-child(even) td { background:var(--bg); }
+    .compare-table tr td:first-child { font-weight:700; color:var(--text-muted); background:var(--primary-light)!important; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.4px; min-width:140px; }
+    .compare-prop-img { width:100%; height:140px; object-fit:cover; border-radius:var(--radius); margin-bottom:8px; }
+    .compare-prop-title { font-weight:800; font-size:1rem; margin-bottom:2px; }
+    .compare-prop-sub { font-size:0.82rem; color:var(--text-muted); }
+    .compare-price { font-size:1.3rem; font-weight:900; color:var(--primary); margin-top:6px; }
+    .compare-header-cell { background:white!important; padding:1rem!important; text-align:center; border-bottom:2px solid var(--primary)!important; }
+    .remove-btn { background:none; border:1.5px solid var(--danger); color:var(--danger); padding:4px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; margin-top:6px; }
+    .tick { color:var(--success); font-weight:700; }
+    .cross { color:var(--danger); }
+    .empty-compare { text-align:center; padding:4rem; color:var(--text-muted); }
+    .score-cell { display:flex; align-items:center; gap:6px; }
+    .mini-bar { height:6px; border-radius:3px; background:var(--primary); display:inline-block; }
+    .add-more-btn { border:2px dashed var(--primary); background:var(--primary-light); color:var(--primary); padding:1.5rem; border-radius:var(--radius-lg); cursor:pointer; text-align:center; min-width:200px; font-weight:600; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+    <li><a href="moving-assistant.html">📦 Moving</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<div class="container" style="padding-top:1.5rem;padding-bottom:3rem">
+  <div class="flex-between mb-3">
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:800">⚖️ Compare Properties</h1>
+      <p style="color:var(--text-muted)">Compare up to 3 properties side by side</p>
+    </div>
+    <a href="search-results.html" class="btn btn-outline">← Add More Properties</a>
+  </div>
+
+  <div id="compare-content">
+    <div class="empty-compare">
+      <div style="font-size:3rem">⚖️</div>
+      <h3 style="margin:1rem 0 0.5rem">No Properties Selected</h3>
+      <p>Go to property listings and select up to 3 properties to compare.</p>
+      <a href="search-results.html" class="btn btn-primary mt-2">Browse Properties</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/properties.js"></script>
+<script>
+  const compareList = JSON.parse(sessionStorage.getItem('compare_list') || '[]');
+
+  function renderCompare() {
+    const content = document.getElementById('compare-content');
+    const props = compareList.map(id => getPropertyById(id)).filter(Boolean);
+
+    if (props.length < 2) {
+      content.innerHTML = `
+        <div class="empty-compare">
+          <div style="font-size:3rem">⚖️</div>
+          <h3>Select at least 2 properties to compare</h3>
+          <p style="margin:0.5rem 0 1.5rem">Add properties from the listings page.</p>
+          <a href="search-results.html" class="btn btn-primary">Browse Properties</a>
+        </div>`;
+      return;
+    }
+
+    const rows = [
+      ['Price', p => `<strong style="color:var(--primary)">${p.priceLabel}</strong>`],
+      ['Purpose', p => `<span class="badge badge-primary">${p.purpose}</span>`],
+      ['Location', p => `📍 ${p.location}`],
+      ['City', p => p.city],
+      ['Property Type', p => p.type],
+      ['BHK', p => `${p.bhk} BHK`],
+      ['Area', p => `${p.area} sq.ft`],
+      ['Floor', p => p.floor],
+      ['Balcony', p => `${p.balcony}`],
+      ['Furnishing', p => p.furnishing],
+      ['Water Supply', p => p.water],
+      ['Parking', p => p.parking ? '<span class="tick">✓ Yes</span>' : '<span class="cross">✗ No</span>'],
+      ['Pet Friendly', p => p.petFriendly ? '<span class="tick">✓ Yes</span>' : '<span class="cross">✗ No</span>'],
+      ['Power Backup', p => p.powerBackup ? '<span class="tick">✓ Yes</span>' : '<span class="cross">✗ No</span>'],
+      ['Wi-Fi Ready', p => p.wifi ? '<span class="tick">✓ Yes</span>' : '<span class="cross">✗ No</span>'],
+      ['CCTV', p => p.cctv ? '<span class="tick">✓ Yes</span>' : '<span class="cross">✗ No</span>'],
+      ['Gated Community', p => p.gated ? '<span class="tick">✓ Yes</span>' : '<span class="cross">✗ No</span>'],
+      ['Verified', p => p.verified ? '<span class="tick">✓ Verified</span>' : '<span class="cross">✗ Unverified</span>'],
+      ['Amenities', p => `<div style="display:flex;flex-wrap:wrap;gap:3px">${p.amenities.slice(0,4).map(a=>`<span style="background:var(--primary-light);color:var(--primary);padding:2px 6px;border-radius:10px;font-size:0.75rem">${a}</span>`).join('')}${p.amenities.length>4?`<span style="font-size:0.75rem;color:var(--text-muted)">+${p.amenities.length-4}</span>`:''}</div>`],
+      ['Nearby School', p => p.nearby.schools[0] ? `${p.nearby.schools[0].name} (${p.nearby.schools[0].dist})` : '–'],
+      ['Nearby Hospital', p => p.nearby.hospitals[0] ? `${p.nearby.hospitals[0].name} (${p.nearby.hospitals[0].dist})` : '–'],
+      ['Metro Station', p => p.nearby.metro[0] ? `${p.nearby.metro[0].name} (${p.nearby.metro[0].dist})` : '–'],
+      ['Safety Score', p => `<div class="score-cell"><span class="mini-bar" style="width:${p.localityScore.safety/5*60}px"></span> ${p.localityScore.safety}/5</div>`],
+      ['Walkability', p => `<div class="score-cell"><span class="mini-bar" style="width:${p.localityScore.walkability/5*60}px"></span> ${p.localityScore.walkability}/5</div>`],
+      ['Traffic Score', p => `<div class="score-cell"><span class="mini-bar" style="width:${p.localityScore.traffic/5*60}px"></span> ${p.localityScore.traffic}/5</div>`],
+      ['Available From', p => new Date(p.availableFrom).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})],
+      ['Rating', p => `⭐ ${p.rating}/5`],
+      ['Owner/Agent', p => `${p.owner.name} (${p.owner.type})`],
+    ];
+
+    const colspan = props.length + 1;
+    const canAddMore = props.length < 3;
+
+    content.innerHTML = `
+      <div class="table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th style="background:var(--primary-light);color:var(--text)">Feature</th>
+              ${props.map(p => `
+                <th class="compare-header-cell">
+                  <img src="${p.images[0]}" class="compare-prop-img" onerror="this.style.display='none'"/>
+                  <div class="compare-prop-title">${p.title}</div>
+                  <div class="compare-prop-sub">📍 ${p.location}</div>
+                  <div class="compare-price">${p.priceLabel}</div>
+                  <a href="property-detail.html?id=${p.id}" class="btn btn-sm btn-primary" style="margin-top:6px">View Details</a>
+                  <br/>
+                  <button type="button" id="btn-remove-${p.id}" class="remove-btn" onclick="removeProp(${p.id})">✕ Remove</button>
+                </th>
+              `).join('')}
+              ${canAddMore ? `<th class="compare-header-cell"><button type="button" id="btn-add-more-property" class="add-more-btn" onclick="window.location.href='search-results.html'" style="background:none;border:none;cursor:pointer;width:100%;text-align:center;padding:0">➕ Add Property</button></th>` : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(([label, fn]) => `
+              <tr>
+                <td>${label}</td>
+                ${props.map(p => `<td>${fn(p)}</td>`).join('')}
+                ${canAddMore ? '<td style="background:var(--bg)"></td>' : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function removeProp(id) {
+    const idx = compareList.indexOf(id);
+    if (idx > -1) compareList.splice(idx, 1);
+    sessionStorage.setItem('compare_list', JSON.stringify(compareList));
+    renderCompare();
+  }
+
+  renderNavUser();
+  renderCompare();
+</script>
+</body>
+</html>

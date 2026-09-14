@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Moving Assistant – PropFind</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .ma-hero { background:linear-gradient(135deg,#1a56db,#0ea5e9); color:white; padding:2.5rem 2rem; text-align:center; }
+    .ma-hero h1 { font-size:2rem; font-weight:900; margin-bottom:0.5rem; }
+    .ma-hero p  { opacity:0.9; font-size:1rem; }
+    .tabs-bar { background:white; border-bottom:2px solid var(--border); display:flex; gap:4px; padding:0 2rem; overflow-x:auto; }
+    .tab-btn  { padding:12px 20px; border:none; border-bottom:3px solid transparent; background:none; font-weight:600; font-size:0.9rem; cursor:pointer; white-space:nowrap; color:var(--text-muted); transition:all 0.18s; }
+    .tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .section-card { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.2rem; }
+    .section-card h3 { font-size:1rem; font-weight:700; margin-bottom:1rem; padding-bottom:0.6rem; border-bottom:1.5px solid var(--border); display:flex; align-items:center; gap:8px; }
+    .doc-row  { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); gap:1rem; flex-wrap:wrap; }
+    .doc-row:last-child { border-bottom:none; }
+    .doc-info { flex:1; }
+    .doc-info .doc-name { font-weight:600; font-size:0.92rem; }
+    .doc-info .doc-desc { font-size:0.82rem; color:var(--text-muted); margin-top:2px; }
+    .checklist-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+    .checklist-item:last-child { border-bottom:none; }
+    .checklist-item input[type="checkbox"] { margin-top:2px; width:16px; height:16px; accent-color:var(--primary); flex-shrink:0; }
+    .checklist-item label { cursor:pointer; font-size:0.9rem; }
+    .checklist-item.done label { text-decoration:line-through; color:var(--text-muted); }
+    .progress-section { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.2rem 1.5rem; margin-bottom:1.2rem; }
+    .prog-bar-bg { background:#e5e7eb; border-radius:8px; height:12px; margin:8px 0 4px; }
+    .prog-bar-fill { height:12px; border-radius:8px; background:linear-gradient(90deg,#10b981,#1a56db); transition:width 0.5s; }
+    .prog-label { font-size:0.78rem; color:var(--text-muted); }
+    .tip-box { background:var(--primary-light); border-left:4px solid var(--primary); border-radius:0 var(--radius) var(--radius) 0; padding:10px 14px; font-size:0.88rem; margin-bottom:8px; }
+    .resource-card { background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1.2rem; display:flex; gap:12px; align-items:flex-start; }
+    .resource-icon { font-size:1.8rem; flex-shrink:0; }
+    .resource-info h4 { font-size:0.95rem; font-weight:700; margin-bottom:4px; }
+    .resource-info p  { font-size:0.83rem; color:var(--text-muted); line-height:1.5; margin-bottom:8px; }
+    .accordion-header { display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:12px 0; border-bottom:1px solid var(--border); font-weight:600; font-size:0.92rem; }
+    .accordion-header:last-child { border-bottom:none; }
+    .accordion-body { display:none; padding:10px 0; font-size:0.88rem; color:var(--text-muted); line-height:1.7; }
+    .accordion-body.open { display:block; }
+    .emergency-card { background:white; border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.2rem; display:flex; align-items:center; gap:14px; }
+    .emergency-icon { font-size:1.8rem; }
+    .emergency-num { font-weight:900; font-size:1.1rem; color:var(--primary); }
+    .emergency-lbl { font-size:0.82rem; color:var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo"><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">🏠 Prop<span style="color:var(--accent)">Find</span></a></div>
+  <ul class="nav-links">
+    <li><a href="search-results.html">Properties</a></li>
+    <li><a href="map-view.html">Map View</a></li>
+    <li><a href="budget-planner.html">Budget Planner</a></li>
+    <li><a href="add-listing.html">Post Property</a></li>
+  </ul>
+  <div class="nav-user" id="nav-auth" style="margin-left:1.5rem;display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<!-- HERO -->
+<div class="ma-hero">
+  <div class="container">
+    <h1>📦 Moving Assistant</h1>
+    <p>Everything you need after booking — legal support, checklists, utilities, and moving guidance.</p>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar" id="tabs-bar">
+  <button type="button" id="tab-btn-support" class="tab-btn active" onclick="switchTab('support',this)">⚖️ Legal & Rental Support</button>
+  <button type="button" id="tab-btn-documents" class="tab-btn" onclick="switchTab('documents',this)">📄 Documents</button>
+  <button type="button" id="tab-btn-checklist" class="tab-btn" onclick="switchTab('checklist',this)">✅ Checklists</button>
+  <button type="button" id="tab-btn-guidance" class="tab-btn" onclick="switchTab('guidance',this)">📋 Moving Guidance</button>
+  <button type="button" id="tab-btn-progress" class="tab-btn" onclick="switchTab('progress',this)">📊 My Progress</button>
+</div>
+
+<div class="container" style="padding-top:1.5rem;padding-bottom:3rem">
+
+  <!-- ============================================================
+       TAB 1: Legal & Rental Support (TC71)
+       ============================================================ -->
+  <div class="tab-panel active" id="tab-support">
+
+    <div class="section-card">
+      <h3>⚖️ Rental Agreement Guide</h3>
+      <div class="accordion-header" onclick="toggleAccordion('acc1')">What should a rental agreement include? <span id="acc1-icon">▼</span></div>
+      <div class="accordion-body" id="acc1">
+        A valid rental agreement should include: full names of landlord and tenant, property address and description, monthly rent amount, security deposit, duration and renewal terms, notice period, maintenance responsibilities, and rules on subletting and pets.
+      </div>
+      <div class="accordion-header" onclick="toggleAccordion('acc2')">11-month vs 12-month lease — what's the difference? <span id="acc2-icon">▼</span></div>
+      <div class="accordion-body" id="acc2">
+        An 11-month lease avoids mandatory stamp duty registration (under ₹500 in most states). A 12-month or longer agreement must be registered and is legally stronger. For short-term stays, 11-month agreements are common in India.
+      </div>
+      <div class="accordion-header" onclick="toggleAccordion('acc3')">How to handle security deposit disputes? <span id="acc3-icon">▼</span></div>
+      <div class="accordion-body" id="acc3">
+        Document the property's condition with photos on move-in. Deductions must be justified (damage beyond normal wear). If disputed, approach the Rent Control Authority or file a complaint in consumer court. Keep all receipts of rent payments.
+      </div>
+      <div class="accordion-header" onclick="toggleAccordion('acc4')">Tenant rights under Indian law <span id="acc4-icon">▼</span></div>
+      <div class="accordion-body" id="acc4">
+        Under the Model Tenancy Act 2021, tenants have the right to a written agreement, receipt for every payment, advance notice before entry by landlord, and protection from illegal eviction. The security deposit is capped at 2 months' rent for residential properties.
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>🏛️ Legal Resources & Contacts</h3>
+      <div class="grid-2">
+        <div class="resource-card">
+          <div class="resource-icon">📞</div>
+          <div class="resource-info">
+            <h4>Rent Control Authority</h4>
+            <p>File rent-related disputes, rent control complaints, and eviction matters with your city's Rent Controller.</p>
+            <a href="#" class="btn btn-sm btn-primary">Find Local Authority</a>
+          </div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-icon">⚖️</div>
+          <div class="resource-info">
+            <h4>Consumer Forum</h4>
+            <p>For disputes involving builders, real estate agents, or housing societies, file a complaint at the Consumer Disputes Redressal Forum.</p>
+            <a href="#" class="btn btn-sm btn-primary">Lodge Complaint</a>
+          </div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-icon">🏠</div>
+          <div class="resource-info">
+            <h4>RERA – Real Estate Authority</h4>
+            <p>Under RERA, builders must register projects. Check registration status and file complaints at rera.gov.in.</p>
+            <a href="https://rera.gov.in" target="_blank" rel="noopener" class="btn btn-sm btn-primary">Visit RERA</a>
+          </div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-icon">📋</div>
+          <div class="resource-info">
+            <h4>PropFind Legal Helpdesk</h4>
+            <p>Our in-house legal team can review your agreement and advise on local regulations. Available Mon–Sat, 10 AM–6 PM.</p>
+            <a href="tel:1800001234" class="btn btn-sm btn-primary">Call 1800-00-1234</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emergency contacts -->
+    <div class="section-card">
+      <h3>🚨 Emergency Support Contacts</h3>
+      <div class="grid-2">
+        <div class="emergency-card"><div class="emergency-icon">🚒</div><div><div class="emergency-num">101</div><div class="emergency-lbl">Fire Station</div></div></div>
+        <div class="emergency-card"><div class="emergency-icon">👮</div><div><div class="emergency-num">100</div><div class="emergency-lbl">Police</div></div></div>
+        <div class="emergency-card"><div class="emergency-icon">🚑</div><div><div class="emergency-num">108</div><div class="emergency-lbl">Ambulance</div></div></div>
+        <div class="emergency-card"><div class="emergency-icon">📞</div><div><div class="emergency-num">1800-00-1234</div><div class="emergency-lbl">PropFind 24/7 Helpline</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 2: Documents (TC72)
+       ============================================================ -->
+  <div class="tab-panel" id="tab-documents">
+
+    <div class="section-card">
+      <h3>📄 Available Agreement Templates</h3>
+      <div id="doc-alert"></div>
+      <div class="doc-row">
+        <div class="doc-info">
+          <div class="doc-name">📝 Standard 11-Month Rental Agreement</div>
+          <div class="doc-desc">Most commonly used residential rental agreement template — 11-month lease, no stamp duty needed.</div>
+        </div>
+        <button type="button" id="btn-dl-rental-agreement" class="btn btn-sm btn-primary" onclick="downloadDoc('Rental_Agreement_11Month.pdf')">⬇ Download PDF</button>
+      </div>
+      <div class="doc-row">
+        <div class="doc-info">
+          <div class="doc-name">📝 Leave & Licence Agreement</div>
+          <div class="doc-desc">Used widely in Maharashtra. Distinguishes the owner's right to revoke occupancy at any time.</div>
+        </div>
+        <button type="button" id="btn-dl-leave-licence" class="btn btn-sm btn-primary" onclick="downloadDoc('Leave_Licence_Agreement.pdf')">⬇ Download PDF</button>
+      </div>
+      <div class="doc-row">
+        <div class="doc-info">
+          <div class="doc-name">📋 Property Inventory Checklist</div>
+          <div class="doc-desc">Record furniture, appliances, and fixtures during move-in and move-out to avoid deposit disputes.</div>
+        </div>
+        <button type="button" id="btn-dl-inventory" class="btn btn-sm btn-primary" onclick="downloadDoc('Inventory_Checklist.pdf')">⬇ Download PDF</button>
+      </div>
+      <div class="doc-row">
+        <div class="doc-info">
+          <div class="doc-name">📋 Tenant Verification Form</div>
+          <div class="doc-desc">Police verification form for tenants — required in most cities. Download and submit at your local police station.</div>
+        </div>
+        <button type="button" id="btn-dl-tenant-verification" class="btn btn-sm btn-primary" onclick="downloadDoc('Tenant_Verification_Form.pdf')">⬇ Download PDF</button>
+      </div>
+      <div class="doc-row">
+        <div class="doc-info">
+          <div class="doc-name">📑 KYC Documents Checklist</div>
+          <div class="doc-desc">Aadhaar, PAN, passport-size photo, and address proof requirements for rental agreements.</div>
+        </div>
+        <button type="button" id="btn-dl-kyc" class="btn btn-sm btn-primary" onclick="downloadDoc('KYC_Checklist.pdf')">⬇ Download PDF</button>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>📤 Upload Your Documents</h3>
+      <div class="form-group">
+        <label>Upload signed agreement or other documents</label>
+        <div style="border:2px dashed var(--border);border-radius:var(--radius-lg);padding:2rem;text-align:center;cursor:pointer;background:var(--bg)" onclick="document.getElementById('doc-upload').click()">
+          <div style="font-size:2.5rem">📂</div>
+          <div style="font-weight:600;margin-top:6px">Click to upload (PDF, JPG, PNG)</div>
+          <input type="file" id="doc-upload" accept=".pdf,.jpg,.jpeg,.png" multiple style="display:none" onchange="handleDocUpload(this)"/>
+        </div>
+        <div id="uploaded-docs" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 3: Checklists (TC73)
+       ============================================================ -->
+  <div class="tab-panel" id="tab-checklist">
+    <div class="alert alert-info" style="margin-bottom:1.2rem">Check items off as you complete them — progress is saved automatically.</div>
+
+    <!-- Tenant Verification -->
+    <div class="section-card">
+      <h3>🪪 Tenant Verification Checklist</h3>
+      <div id="checklist-tenant"></div>
+    </div>
+
+    <!-- Property Verification -->
+    <div class="section-card">
+      <h3>🏠 Property Inspection Checklist</h3>
+      <div id="checklist-property"></div>
+    </div>
+
+    <!-- Move-in Checklist -->
+    <div class="section-card">
+      <h3>🚪 Move-In Checklist</h3>
+      <div id="checklist-movein"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 4: Moving Guidance (TC74)
+       ============================================================ -->
+  <div class="tab-panel" id="tab-guidance">
+
+    <div class="grid-2" style="margin-bottom:1.2rem">
+      <div class="section-card">
+        <h3>⚡ Utility Setup</h3>
+        <div class="tip-box">📌 Transfer electricity to your name at the local EB office with your agreement and ID.</div>
+        <div class="tip-box">💧 Contact your city's water board to update address for water bill.</div>
+        <div class="tip-box">🌐 Book broadband 1–2 weeks before moving. Top providers: Airtel, BSNL, Hathway, ACT.</div>
+        <div class="tip-box">⛽ Transfer LPG cylinder connection via Indane / HP / Bharat Gas app or dealer visit.</div>
+        <a href="#" class="btn btn-sm btn-primary mt-2" onclick="showToast('Utility setup guide downloaded!','success')">⬇ Download Utility Guide</a>
+      </div>
+      <div class="section-card">
+        <h3>📬 Address Change Reminders</h3>
+        <div class="tip-box">🪪 Update Aadhaar address at nearest Aadhaar Enrolment Centre.</div>
+        <div class="tip-box">💳 Update address on PAN, bank accounts, and credit cards online.</div>
+        <div class="tip-box">📦 Redirect post at IndiaPost website for up to 12 months.</div>
+        <div class="tip-box">🏫 Notify employer, schools, and insurance providers of your new address.</div>
+        <div class="tip-box">🚗 Update vehicle RC address at your regional RTO if moving cities.</div>
+        <a href="#" class="btn btn-sm btn-primary mt-2" onclick="showToast('Address change checklist downloaded!','success')">⬇ Download Checklist</a>
+      </div>
+      <div class="section-card">
+        <h3>🚛 Packers & Movers Tips</h3>
+        <div class="tip-box">📅 Book at least 2 weeks in advance — especially for end-of-month moves.</div>
+        <div class="tip-box">💰 Get 3 quotes before finalising. Verify GST registration of the company.</div>
+        <div class="tip-box">📋 Insist on a written inventory of all items packed.</div>
+        <div class="tip-box">📸 Photo-document fragile items before packing begins.</div>
+        <div class="tip-box">🔒 Be present during loading and unloading to verify all items.</div>
+        <a href="#" class="btn btn-sm btn-primary mt-2" onclick="showToast('Movers checklist downloaded!','success')">⬇ Download Movers Checklist</a>
+      </div>
+      <div class="section-card">
+        <h3>🌐 Internet & Tech Setup</h3>
+        <div class="tip-box">📶 Check provider coverage in your locality first (JioFiber, Airtel, ACT).</div>
+        <div class="tip-box">💡 Install smart home or Wi-Fi mesh devices before furniture arrives.</div>
+        <div class="tip-box">🔌 Test all power sockets and earthing before plugging in appliances.</div>
+        <div class="tip-box">📡 For DTH / cable, register your new address online or call provider.</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>📅 Moving Timeline</h3>
+      <div style="position:relative;padding-left:24px;border-left:3px solid var(--primary)">
+        <div style="margin-bottom:1.2rem;position:relative">
+          <div style="position:absolute;left:-30px;top:2px;width:14px;height:14px;background:var(--primary);border-radius:50%"></div>
+          <div style="font-weight:700;font-size:0.92rem">4 Weeks Before</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">Finalize rental agreement · Book packers & movers · Start utilities paperwork</div>
+        </div>
+        <div style="margin-bottom:1.2rem;position:relative">
+          <div style="position:absolute;left:-30px;top:2px;width:14px;height:14px;background:var(--primary);border-radius:50%"></div>
+          <div style="font-weight:700;font-size:0.92rem">2 Weeks Before</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">Confirm movers · Sort and label boxes · Book internet connection</div>
+        </div>
+        <div style="margin-bottom:1.2rem;position:relative">
+          <div style="position:absolute;left:-30px;top:2px;width:14px;height:14px;background:var(--primary);border-radius:50%"></div>
+          <div style="font-weight:700;font-size:0.92rem">Moving Day</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">Inspect property · Take photos · Complete inventory checklist · Get keys</div>
+        </div>
+        <div style="position:relative">
+          <div style="position:absolute;left:-30px;top:2px;width:14px;height:14px;background:var(--success);border-radius:50%"></div>
+          <div style="font-weight:700;font-size:0.92rem">First Week</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">Update address everywhere · Set up utilities · Unpack essentials · Meet neighbours</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 5: My Progress (TC75)
+       ============================================================ -->
+  <div class="tab-panel" id="tab-progress">
+
+    <!-- Overall progress bar -->
+    <div class="progress-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:700">Overall Setup Progress</span>
+        <span id="prog-pct" style="font-weight:900;color:var(--primary)">0%</span>
+      </div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-label" id="prog-label">0 of 0 tasks completed</div>
+    </div>
+
+    <!-- Category progress -->
+    <div class="grid-2">
+      <div class="progress-section">
+        <div style="font-weight:700;margin-bottom:6px">🪪 Tenant Verification</div>
+        <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-tenant" style="width:0%"></div></div>
+        <div class="prog-label" id="prog-tenant-lbl">0%</div>
+      </div>
+      <div class="progress-section">
+        <div style="font-weight:700;margin-bottom:6px">🏠 Property Inspection</div>
+        <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-property" style="width:0%"></div></div>
+        <div class="prog-label" id="prog-property-lbl">0%</div>
+      </div>
+      <div class="progress-section">
+        <div style="font-weight:700;margin-bottom:6px">🚪 Move-In Setup</div>
+        <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-movein" style="width:0%"></div></div>
+        <div class="prog-label" id="prog-movein-lbl">0%</div>
+      </div>
+      <div class="progress-section">
+        <div style="font-weight:700;margin-bottom:6px">📄 Documents</div>
+        <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-docs" style="width:0%"></div></div>
+        <div class="prog-label" id="prog-docs-lbl">0%</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>📋 Important Reminders & Updates</h3>
+      <div id="progress-reminders"></div>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <button type="button" id="btn-reset-progress" class="btn btn-outline" onclick="if(confirm('Reset all progress?')){resetProgress();}">↺ Reset All Progress</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script src="js/properties.js"></script>
+<script>
+// ---- Tab switching ----
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'progress' || id === 'checklist') refreshProgress();
+}
+
+// ---- Accordion ----
+function toggleAccordion(id) {
+  const body = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  const open = body.classList.toggle('open');
+  icon.textContent = open ? '▲' : '▼';
+}
+
+// ---- Checklist data ----
+const CHECKLISTS = {
+  tenant: [
+    'Collect Aadhaar card copy of tenant',
+    'Collect PAN card copy of tenant',
+    'Collect passport-size photo',
+    'Submit police verification form at local station',
+    'Verify employment or income proof',
+    'Collect previous landlord reference'
+  ],
+  property: [
+    'Inspect all rooms, walls, and ceiling for damage',
+    'Test all water taps and check for leaks',
+    'Test all electrical switches and sockets',
+    'Check all windows and doors open/close properly',
+    'Verify all appliances (AC, geyser, fridge) are functional',
+    'Document property condition with dated photos',
+    'Confirm parking space is accessible',
+    'Check for pest or termite signs'
+  ],
+  movein: [
+    'Collect all keys (main door, mailbox, parking)',
+    'Sign and collect a copy of the rental agreement',
+    'Pay and get receipt for security deposit',
+    'Transfer electricity to your name',
+    'Set up water and gas connections',
+    'Book internet/broadband connection',
+    'Update home address on Aadhaar',
+    'Update address on bank accounts',
+    'Redirect post at India Post',
+    'Notify employer of new address'
+  ]
+};
+
+let checkState = JSON.parse(localStorage.getItem('propfind_ma_checks') || '{}');
+
+function renderChecklist(key, containerId) {
+  const items = CHECKLISTS[key];
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map((text, i) => {
+    const cid = key + '_' + i;
+    const done = !!checkState[cid];
+    return `
+      <div class="checklist-item ${done ? 'done' : ''}" id="ci-${cid}">
+        <input type="checkbox" id="chk-${cid}" ${done ? 'checked' : ''} onchange="toggleCheck('${cid}',this.checked)"/>
+        <label for="chk-${cid}">${text}</label>
+      </div>`;
+  }).join('');
+}
+
+function toggleCheck(cid, val) {
+  checkState[cid] = val;
+  localStorage.setItem('propfind_ma_checks', JSON.stringify(checkState));
+  const row = document.getElementById('ci-' + cid);
+  if (row) row.classList.toggle('done', val);
+  refreshProgress();
+}
+
+function countChecked(key) {
+  return CHECKLISTS[key].filter((_, i) => !!checkState[key + '_' + i]).length;
+}
+
+function refreshProgress() {
+  const cats = ['tenant', 'property', 'movein'];
+  let totalDone = 0, totalAll = 0;
+  cats.forEach(key => {
+    const done = countChecked(key);
+    const all  = CHECKLISTS[key].length;
+    totalDone += done; totalAll += all;
+    const pct = all > 0 ? Math.round(done / all * 100) : 0;
+    const barEl = document.getElementById('prog-' + key);
+    const lblEl = document.getElementById('prog-' + key + '-lbl');
+    if (barEl) barEl.style.width = pct + '%';
+    if (lblEl) lblEl.textContent = pct + '% (' + done + '/' + all + ')';
+  });
+
+  // Docs progress (based on downloads in localStorage)
+  const docsDownloaded = JSON.parse(localStorage.getItem('propfind_ma_docs') || '[]');
+  const docsPct = Math.min(Math.round(docsDownloaded.length / 3 * 100), 100);
+  const docBar = document.getElementById('prog-docs');
+  const docLbl = document.getElementById('prog-docs-lbl');
+  if (docBar) docBar.style.width = docsPct + '%';
+  if (docLbl) docLbl.textContent = docsPct + '% (' + docsDownloaded.length + ' downloaded)';
+
+  const overallPct = totalAll > 0 ? Math.round(totalDone / totalAll * 100) : 0;
+  const fill = document.getElementById('prog-fill');
+  const pctEl = document.getElementById('prog-pct');
+  const lbl = document.getElementById('prog-label');
+  if (fill) fill.style.width = overallPct + '%';
+  if (pctEl) pctEl.textContent = overallPct + '%';
+  if (lbl) lbl.textContent = totalDone + ' of ' + totalAll + ' tasks completed';
+
+  renderReminders(overallPct);
+}
+
+function renderReminders(pct) {
+  const el = document.getElementById('progress-reminders');
+  if (!el) return;
+  const reminders = [];
+  if (!checkState['movein_0']) reminders.push({ icon:'🔑', msg:'Collect all keys from the owner on move-in day.' });
+  if (!checkState['movein_2']) reminders.push({ icon:'⚡', msg:'Transfer electricity connection to your name — visit your local EB office.' });
+  if (!checkState['movein_7']) reminders.push({ icon:'🪪', msg:'Update your Aadhaar with the new address at an enrolment centre.' });
+  if (!checkState['tenant_3']) reminders.push({ icon:'👮', msg:'Submit tenant police verification form at your local station.' });
+  if (pct === 100) reminders.push({ icon:'🎉', msg:'Congratulations! All move-in tasks are complete. Enjoy your new home!' });
+  if (!reminders.length) reminders.push({ icon:'✅', msg:'You\'re all set! No pending important actions.' });
+  el.innerHTML = reminders.map(r => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:1.4rem">${r.icon}</span>
+      <span style="font-size:0.9rem;line-height:1.5">${r.msg}</span>
+    </div>`).join('');
+}
+
+function resetProgress() {
+  checkState = {};
+  localStorage.removeItem('propfind_ma_checks');
+  localStorage.removeItem('propfind_ma_docs');
+  renderChecklists();
+  refreshProgress();
+  showToast('Progress reset.', '');
+}
+
+function renderChecklists() {
+  renderChecklist('tenant',   'checklist-tenant');
+  renderChecklist('property', 'checklist-property');
+  renderChecklist('movein',   'checklist-movein');
+}
+
+// ---- Document download (TC72) ----
+function downloadDoc(filename) {
+  // Create a minimal PDF-like text download (no external URL needed)
+  const docContent = {
+    'Rental_Agreement_11Month.pdf': `RENTAL AGREEMENT (11-Month Lease)\n\nThis agreement is entered into between the Landlord and Tenant...\n[Full template - PropFind]`,
+    'Leave_Licence_Agreement.pdf':  `LEAVE AND LICENCE AGREEMENT\n\nThis Leave and Licence Agreement is made on...\n[Full template - PropFind]`,
+    'Inventory_Checklist.pdf':      `PROPERTY INVENTORY CHECKLIST\n\nRoom-by-room furniture and appliance inventory...\n[Full template - PropFind]`,
+    'Tenant_Verification_Form.pdf': `TENANT POLICE VERIFICATION FORM\n\nDetails to be submitted at the local police station...\n[Full template - PropFind]`,
+    'KYC_Checklist.pdf':            `KYC DOCUMENTS CHECKLIST\n\n1. Aadhaar Card (Original + Copy)\n2. PAN Card\n3. 2 Passport-size photos\n4. Address proof...\n[PropFind]`
+  };
+  const content = docContent[filename] || 'Document content - PropFind';
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename.replace('.pdf', '.txt'); // plain text download for demo
+  a.click();
+  // Track download for progress
+  let docs = JSON.parse(localStorage.getItem('propfind_ma_docs') || '[]');
+  if (!docs.includes(filename)) docs.push(filename);
+  localStorage.setItem('propfind_ma_docs', JSON.stringify(docs));
+  showToast('Document downloaded: ' + filename, 'success');
+  document.getElementById('doc-alert').innerHTML = '<div class="alert alert-success">✅ ' + filename + ' downloaded successfully.</div>';
+  setTimeout(() => { const el = document.getElementById('doc-alert'); if (el) el.innerHTML = ''; }, 4000);
+}
+
+function handleDocUpload(input) {
+  const el = document.getElementById('uploaded-docs');
+  const files = [...input.files];
+  if (!files.length) return;
+  el.innerHTML = files.map(f => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--primary-light);border-radius:8px;margin-bottom:6px;font-size:0.85rem">
+      <span>📎</span><span style="font-weight:600">${f.name}</span>
+      <span style="color:var(--text-muted)">(${(f.size/1024).toFixed(1)} KB)</span>
+      <span class="badge badge-success" style="margin-left:auto">✓ Uploaded</span>
+    </div>`).join('');
+  showToast('Document(s) uploaded successfully!', 'success');
+}
+
+// ---- Init ----
+renderChecklists();
+refreshProgress();
+renderNavUser();
+</script>
+</body>
+</html>
