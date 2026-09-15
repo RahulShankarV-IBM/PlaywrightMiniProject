@@ -185,8 +185,21 @@ async loginAs(username = 'valid_user', password = 'Valid@123') {
 
 ## Generation Steps
 
+### Step 0 — Identify the team member
+1. Ask: **"What is your first name?"**
+2. Open `docs/TEAM_ASSIGNMENTS.md` and find the row whose **Person** column matches the name provided (case-insensitive).
+3. From that row, read:
+   - **Page(s)** — the HTML files under test
+   - **User Story** — the US IDs to cover
+   - **Test Cases** — the TC range(s) to generate (expand ranges like `TC01–TC05` into individual IDs: TC01, TC02, TC03, TC04, TC05)
+4. If the name is not found in the table, respond:
+   > "I couldn't find **[name]** in `docs/TEAM_ASSIGNMENTS.md`. Please check your name or ask your project lead to add you."
+   Then stop — do not proceed to Step 1.
+5. Confirm back to the user before continuing:
+   > "Found **[Name]** → Pages: `[page(s)]` | User Stories: [US IDs] | Test Cases: [expanded TC list]. Generating now…"
+
 ### Step 1 — Read test cases
-Read `docs/Rearranged_testcases.xlsx` for the target User Story / TC IDs to extract:
+Read `docs/Rearranged_testcases.xlsx` filtering to only the TC IDs resolved in Step 0 to extract:
 - Scenario title, Steps, Expected Results, Classification, Priority.
 
 ### Step 2 — Collect element IDs
