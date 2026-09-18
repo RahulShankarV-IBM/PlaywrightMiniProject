@@ -46,11 +46,13 @@ class LoginPage {
 
     async submitRegistrationForm() {
         await this.page.click('#btn-register');
-        // App redirects via setTimeout(..., 500) — wait for navigation
-        await this.page.waitForURL(
-            url => url.toString().includes('index.html') || url.toString().includes('login.html'),
-            { timeout: 5000 }
-        ).catch(() => {});
+        // On success the app redirects to index.html after 500 ms.
+        // On failure it stays on login.html and shows #reg-alert.
+        // Wait for whichever comes first so we don't burn the step timeout.
+        await Promise.race([
+            this.page.waitForURL(url => url.toString().includes('index.html'), { timeout: 4000 }),
+            this.page.waitForSelector('#reg-alert:not(:empty)', { state: 'visible', timeout: 4000 })
+        ]).catch(() => {});
     }
 
     async submitRegistrationFormEmpty() {
@@ -70,11 +72,13 @@ class LoginPage {
 
     async submitLoginForm() {
         await this.page.click('#btn-login');
-        // App redirects via setTimeout(..., 500) — wait for navigation
-        await this.page.waitForURL(
-            url => url.toString().includes('index.html') || url.toString().includes('login.html'),
-            { timeout: 5000 }
-        ).catch(() => {});
+        // On success the app redirects to index.html after 500 ms.
+        // On failure it stays on login.html and shows #login-alert.
+        // Wait for whichever comes first so we don't burn the step timeout.
+        await Promise.race([
+            this.page.waitForURL(url => url.toString().includes('index.html'), { timeout: 4000 }),
+            this.page.waitForSelector('#login-alert:not(:empty)', { state: 'visible', timeout: 4000 })
+        ]).catch(() => {});
     }
 
     // ── Seed user via localStorage ────────────────────────────────────────────
