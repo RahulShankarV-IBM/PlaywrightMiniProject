@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx cucumber-js --config cucumber.config.js",
-    "test:tag": "npx cucumber-js --config cucumber.config.js --tags"
+    "test": "cucumber-js",
+    "test:tag": "cucumber-js --tags"
   },
   "keywords": [],
   "author": "",
