@@ -36,7 +36,7 @@ Then('the property price should be displayed', async function () {
 });
 
 Then('the property location should be displayed', async function () {
-    const locationEl = this.page.locator('#detail-content').locator('text=📍');
+    const locationEl = this.page.locator('#detail-content p').locator('text=📍').first();
     await expect(locationEl).toBeVisible();
 });
 
