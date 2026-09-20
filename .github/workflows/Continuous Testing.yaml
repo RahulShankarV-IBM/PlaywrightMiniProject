@@ -44,13 +44,18 @@ jobs:
         run: npm test
         continue-on-error: true
 
+      - name: Generate HTML Report
+        if: always()
+        run: node generate-report.mjs
+        continue-on-error: true
+
       - name: Prepare Report Site
         if: always()
         run: |
           mkdir -p report-site
 
-          if [ -f reports/cucumber-report.html ]; then
-            cp reports/cucumber-report.html report-site/index.html
+          if [ -f reports/index.html ]; then
+            cp -r reports/. report-site/
           else
             cat > report-site/index.html <<'EOF'
           <!DOCTYPE html>
