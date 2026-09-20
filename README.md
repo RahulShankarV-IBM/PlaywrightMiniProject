@@ -4,34 +4,36 @@ Automated BDD test suite for the **PropFind** property listing web platform, bui
 
 ---
 
-## 🏗️ Architecture & Project Structure
+## Architecture & Project Structure
 
 ```
 .
-├── .github/workflows/             ← GitHub Actions CI pipeline
-├── cucumber.config.js             ← Cucumber-JS runner configuration
-├── package.json                   ← Dependencies & scripts
-├── propfind-website/              ← Web application under test (HTML/CSS/JS)
-├── docs/                          ← Architecture guides & element registries
+├── .github/workflows/             <- GitHub Actions CI pipeline
+├── cucumber.js                    <- Cucumber-JS runner configuration
+├── generate-report.mjs            <- Post-run HTML report generation script
+├── package.json                   <- Dependencies & scripts
+├── propfind-website/              <- Web application under test (HTML/CSS/JS)
+├── docs/                          <- Architecture guides & element registries
 │   ├── CYD.md
 │   ├── ELEMENT_ID_REGISTRY.md
 │   ├── GENERATE_TESTS.md
+│   ├── TEAM_ASSIGNMENTS.md
 │   └── Rearranged_testcases.xlsx
 └── tests/
-    ├── features/                  ← Gherkin .feature specifications
-    ├── pages/                     ← Page Object Model classes (*Page.js)
-    ├── steps/                     ← Cucumber step definitions (*Steps.js)
-    └── support/                   ← Browser lifecycle & hooks
-        ├── world.js               ← PropFindWorld (Playwright browser & page setup)
-        └── hooks.js               ← Before/After hooks & screenshot on failure
+    ├── features/                  <- Gherkin .feature specifications
+    ├── pages/                     <- Page Object Model classes (*Page.js)
+    ├── steps/                     <- Cucumber step definitions (*Steps.js)
+    └── support/                   <- Browser lifecycle & hooks
+        ├── world.js               <- PropFindWorld (Playwright browser & page setup)
+        └── hooks.js               <- Before/After hooks & screenshot on failure
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- **Node.js**: v20 LTS or higher
+- **Node.js**: v22 LTS or higher
 - **npm**: v10 or higher
 
 ### Installation
@@ -54,7 +56,7 @@ Automated BDD test suite for the **PropFind** property listing web platform, bui
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ### Run all tests
 ```bash
@@ -64,32 +66,26 @@ npm test
 ### Run tests by tag
 ```bash
 # Specific test case
-npm run test:tag -- --tags "@TC01"
+npx cucumber-js --tags "@TC01"
 
 # Specific user story
-npm run test:tag -- --tags "@US01"
+npx cucumber-js --tags "@US01"
 
 # Specific priority or classification
-npm run test:tag -- --tags "@High"
-npm run test:tag -- --tags "@Functional"
+npx cucumber-js --tags "@High"
+npx cucumber-js --tags "@Functional"
 ```
 
-### View Test Reports
-After running the tests, open the generated HTML report:
+### Generate the HTML report
+After running tests, generate the rich HTML report:
 ```bash
-# Windows
-start reports/cucumber-report.html
-
-# macOS
-open reports/cucumber-report.html
-
-# Linux
-xdg-open reports/cucumber-report.html
+node generate-report.mjs
 ```
+The report is written to `reports/index.html`.
 
 ---
 
-## 🌿 Git Workflow & Best Practices
+## Git Workflow & Best Practices
 
 To maintain a clean and linear commit history across the team, follow this workflow when creating branches, updating with rebase, and merging.
 
@@ -152,7 +148,7 @@ git branch -d feature/US01-login-automation
 
 ---
 
-## 📋 Pre-Push Checklist
+## Pre-Push Checklist
 
 Before pushing commits or opening a PR, ensure:
 - [ ] Dependencies and browser binaries installed (`npm install`, `npx playwright install chromium`)
