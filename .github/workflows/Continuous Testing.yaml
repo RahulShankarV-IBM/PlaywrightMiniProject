@@ -1,15 +1,10 @@
-name: PropFind Continuous Testing
+name: Continuous Testing
 
 on:
   push:
     branches:
       - main
-      - develop
-      - feature/**
-  pull_request:
-    branches:
-      - main
-      - develop
+
   workflow_dispatch:
 
 permissions:
@@ -19,11 +14,15 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  test:
+  test-and-publish-report:
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout Repository
@@ -32,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "26"
+          node-version: "20"
           cache: npm
 
       - name: Install Dependencies
@@ -41,74 +40,38 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
 
-      - name: Create Report Directories
-        run: |
-          mkdir -p reports
-          mkdir -p gh-pages
-
-      # Run tests but NEVER fail the workflow
-      - name: Execute Cucumber Tests
+      - name: Run Cucumber Tests
         run: npm test
         continue-on-error: true
 
-      # Ensure report folder always exists
-      - name: Prepare GitHub Pages Content
+      - name: Prepare Report Site
         if: always()
         run: |
-          mkdir -p gh-pages
+          mkdir -p report-site
 
           if [ -f reports/cucumber-report.html ]; then
-            cp reports/cucumber-report.html gh-pages/index.html
+            cp reports/cucumber-report.html report-site/index.html
           else
-            cat <<EOF > gh-pages/index.html
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Test Report</title>
-            </head>
-            <body>
-              <h1>Test Report Not Generated</h1>
-              <p>The test execution completed but no report file was found.</p>
-            </body>
-            </html>
-            EOF
+            cat > report-site/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head><meta charset="UTF-8"><title>Test Report</title></head>
+          <body>
+            <h1>Test Report Not Generated</h1>
+            <p>The test run completed but no report file was produced.</p>
+          </body>
+          </html>
+          EOF
           fi
 
-          # Copy supporting assets if they exist
-          cp -r reports/* gh-pages/ 2>/dev/null || true
-
-      - name: Upload Report Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cucumber-report
-          path: reports/
-          retention-days: 30
-
       - name: Configure GitHub Pages
-        if: always()
         uses: actions/configure-pages@v5
 
-      - name: Upload GitHub Pages Artifact
-        if: always()
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: gh-pages
+          path: report-site
 
-  deploy:
-    if: always()
-    needs: test
-    runs-on: ubuntu-latest
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy Report to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
