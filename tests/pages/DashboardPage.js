@@ -126,7 +126,8 @@ class DashboardPage {
     }
 
     async togglePropertyAlerts() {
-        await this.alertsToggle.click();
+        // #alerts-toggle is opacity:0 / zero-size — click the visible track instead
+        await this.page.locator('#toggle-track').click();
     }
 
     // ── Query methods ──────────────────────────────────────────────────────────
@@ -136,7 +137,8 @@ class DashboardPage {
     }
 
     async getFavCardCount() {
-        return this.page.locator('#favs-list .property-card').count();
+        // Favorites render as .mini-card elements inside #favs-list
+        return this.page.locator('#favs-list .mini-card').count();
     }
 
     async isFavCardPresent(id) {
@@ -148,11 +150,12 @@ class DashboardPage {
     }
 
     async getRecentCardCount() {
-        return this.page.locator('#recent-list .property-card').count();
+        // Recently viewed render as .mini-card elements inside #recent-list
+        return this.page.locator('#recent-list .mini-card').count();
     }
 
     async getFirstRecentCardTitle() {
-        return this.page.locator('#recent-list .property-card').first().textContent();
+        return this.page.locator('#recent-list .mini-card').first().textContent();
     }
 
     async isRecoGridVisible() {
@@ -160,7 +163,8 @@ class DashboardPage {
     }
 
     async getRecoCardCount() {
-        return this.panelRecoGrid.locator('.property-card').count();
+        // Recommendations render as .card elements inside #reco-grid
+        return this.panelRecoGrid.locator('.card').count();
     }
 
     async isPrefSavedAlertVisible() {
