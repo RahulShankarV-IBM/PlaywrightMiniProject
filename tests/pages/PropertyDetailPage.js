@@ -166,6 +166,26 @@ class PropertyDetailPage {
         return this.detailContent.isVisible();
     }
 
+    /** Returns the inner text of the main #detail-content wrapper. */
+    async getDetailContentText() {
+        return this.detailContent.innerText();
+    }
+
+    /** Returns true when the owner card rendered inside the sidebar is visible. */
+    async isOwnerCardVisible() {
+        return this.page.locator('.owner-card').isVisible();
+    }
+
+    /** Returns the full text of the nearby-list section. */
+    async getNearbyFacilitiesText() {
+        return this.page.locator('.nearby-list').innerText();
+    }
+
+    /** Alias for getNearbyFacilitiesText. */
+    async getNearbyListText() {
+        return this.getNearbyFacilitiesText();
+    }
+
     async isScheduleModalVisible() {
         return this.scheduleModal.isVisible();
     }

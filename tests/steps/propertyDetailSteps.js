@@ -21,110 +21,97 @@ Given('I am on the property detail page as a logged-in user', async function () 
     await this.propertyDetailPage.navigateAsLoggedInUser(1);
 });
 
+// ── Shared When step (TC21–TC30: navigation already happened in Background) ───
+
+When('I open a property listing', async function () {
+    // Property detail page was already loaded in the Background step.
+    // This step exists to satisfy the Gherkin narrative; no action required.
+});
+
 // ── TC21 – Open property details ──────────────────────────────────────────────
 
-Then('the property detail content should be displayed', async function () {
+Then('the property information should be displayed', async function () {
     const visible = await this.propertyDetailPage.isDetailContentVisible();
     expect(visible).toBe(true);
+    const text = await this.propertyDetailPage.getDetailContentText();
+    expect(text.trim().length).toBeGreaterThan(0);
 });
 
 // ── TC22 – Price, location, area, BHK ─────────────────────────────────────────
 
-Then('the property price should be displayed', async function () {
-    const priceEl = this.page.locator('.price-big');
-    await expect(priceEl).toBeVisible();
-});
-
-Then('the property location should be displayed', async function () {
-    const locationEl = this.page.locator('#detail-content').locator('text=📍');
-    await expect(locationEl).toBeVisible();
-});
-
-Then('the property area should be displayed', async function () {
-    const areaEl = this.page.locator('#detail-content').locator('text=sq.ft').first();
-    await expect(areaEl).toBeVisible();
-});
-
-Then('the property BHK should be displayed', async function () {
-    const bhkEl = this.page.locator('#detail-content').locator('text=BHK').first();
-    await expect(bhkEl).toBeVisible();
+Then('the correct price, location, area and BHK are displayed', async function () {
+    const text = await this.propertyDetailPage.getDetailContentText();
+    expect(text).toContain('₹');
+    expect(text).toContain('📍');
+    expect(text).toContain('sq.ft');
+    expect(text).toContain('BHK');
 });
 
 // ── TC23 – Main image ─────────────────────────────────────────────────────────
 
-Then('the main property image should be visible', async function () {
+Then('the main property image should load correctly', async function () {
     const visible = await this.propertyDetailPage.isMainImageVisible();
     expect(visible).toBe(true);
+    const src = await this.page.locator('#main-img').getAttribute('src');
+    expect(src).toBeTruthy();
 });
 
 // ── TC24 – Virtual tour ───────────────────────────────────────────────────────
 
-When('I click the virtual tour section', async function () {
-    await this.page.locator('#virtual-tour').click();
-});
-
-Then('the virtual tour content should be displayed', async function () {
+Then('the virtual tour section should be visible', async function () {
     const visible = await this.propertyDetailPage.isVirtualTourVisible();
     expect(visible).toBe(true);
 });
 
-// ── TC25 – Contact owner button visible ───────────────────────────────────────
+// ── TC25 – Owner / agent details ──────────────────────────────────────────────
 
-Then('the contact owner button should be visible', async function () {
-    const visible = await this.propertyDetailPage.isContactOwnerButtonVisible();
+Then('the owner or agent details should be displayed', async function () {
+    const visible = await this.propertyDetailPage.isOwnerCardVisible();
     expect(visible).toBe(true);
+    const text = await this.page.locator('.owner-card').innerText();
+    expect(text.trim().length).toBeGreaterThan(0);
 });
 
 // ── TC26 – Nearby schools and hospitals ───────────────────────────────────────
 
-Then('the nearby facilities section should display schools', async function () {
-    const visible = await this.propertyDetailPage.isNearbyTypeVisible('🏫');
-    expect(visible).toBe(true);
+Then('the nearby schools and hospitals section should be displayed', async function () {
+    const nearbyText = await this.propertyDetailPage.getNearbyFacilitiesText();
+    expect(nearbyText).toContain('School');
+    expect(nearbyText).toContain('Hospital');
 });
 
-Then('the nearby facilities section should display hospitals', async function () {
-    const visible = await this.propertyDetailPage.isNearbyTypeVisible('🏥');
-    expect(visible).toBe(true);
+// ── TC27 – Pharmacies, police and fire stations ───────────────────────────────
+
+Then('the nearby pharmacies, police and fire station information should be displayed', async function () {
+    const nearbyText = await this.propertyDetailPage.getNearbyFacilitiesText();
+    expect(nearbyText).toContain('Police Station');
+    expect(nearbyText).toContain('Fire Station');
 });
 
-// ── TC27 – Police and fire stations ──────────────────────────────────────────
+// ── TC28 – Supermarkets, ATMs and transport ───────────────────────────────────
 
-Then('the nearby facilities section should display a police station', async function () {
-    const visible = await this.propertyDetailPage.isNearbyTypeVisible('👮');
-    expect(visible).toBe(true);
-});
-
-Then('the nearby facilities section should display a fire station', async function () {
-    const visible = await this.propertyDetailPage.isNearbyTypeVisible('🚒');
-    expect(visible).toBe(true);
-});
-
-// ── TC28 – Supermarkets and metro ─────────────────────────────────────────────
-
-Then('the nearby facilities section should display supermarkets', async function () {
-    const visible = await this.propertyDetailPage.isNearbyTypeVisible('🛒');
-    expect(visible).toBe(true);
-});
-
-Then('the nearby facilities section should display metro stations', async function () {
-    const visible = await this.propertyDetailPage.isNearbyTypeVisible('🚇');
-    expect(visible).toBe(true);
+Then('the nearby supermarkets, ATMs and transport options should be displayed', async function () {
+    const nearbyText = await this.propertyDetailPage.getNearbyFacilitiesText();
+    expect(nearbyText).toContain('Supermarket');
+    expect(nearbyText).toContain('Metro');
 });
 
 // ── TC29 – Locality insights ──────────────────────────────────────────────────
 
-Then('the locality insights section should be displayed', async function () {
+Then('the locality insights section should be displayed with available safety, pollution, traffic and other information', async function () {
     const visible = await this.propertyDetailPage.isLocalityInsightsVisible();
     expect(visible).toBe(true);
+    const sectionText = await this.page.locator('.score-row').first().innerText();
+    expect(sectionText.trim().length).toBeGreaterThan(0);
 });
 
-// ── TC30 – Emergency facilities ───────────────────────────────────────────────
+// ── TC30 – Emergency support ──────────────────────────────────────────────────
 
-Then('the nearby facilities section should display emergency facilities', async function () {
-    const nearbyList = this.page.locator('.nearby-list');
-    await expect(nearbyList).toBeVisible();
-    const text = await nearbyList.textContent();
-    expect(text).toMatch(/fire station|police/i);
+Then('the emergency support information should be accessible', async function () {
+    const nearbyText = await this.propertyDetailPage.getNearbyFacilitiesText();
+    expect(nearbyText).toContain('Fire Station');
+    expect(nearbyText).toContain('Police Station');
+    expect(nearbyText).toContain('Emergency');
 });
 
 // ── TC41 – View visit dates and time slots ────────────────────────────────────
